@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ניו קאר - טופס קבלת רכב</title>
+  <link rel="icon" type="image/png" href="images/newcar-logo.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f2f3f5;
+      min-height: 100vh;
+      padding: 20px;
+      direction: rtl;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: #2d2d2d;
+      margin-bottom: 40px;
+      padding-top: 20px;
+    }
+
+    header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    header .app-logo {
+      max-width: 280px;
+      width: 100%;
+      height: auto;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+    }
+
+    header p {
+      font-size: 1.1em;
+      color: #666;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-section, .inventory-section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-section h2, .inventory-section h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      border-bottom: 3px solid #c0392b;
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+      font-size: 0.95em;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="email"],
+    input[type="tel"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1em;
+      transition: border-color 0.3s;
+      font-family: inherit;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #c0392b;
+      box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-row.full {
+      grid-template-columns: 1fr;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: #c0392b;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #a12e20;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(192, 57, 43, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-success {
+      background: #48bb78;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #38a169;
+    }
+
+    .btn-danger {
+      background: #f56565;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #e53e3e;
+    }
+
+    .btn-print {
+      background: #4299e1;
+      color: white;
+    }
+
+    .btn-print:hover {
+      background: #3182ce;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .car-item {
+      background: #f8f9fa;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      transition: all 0.3s;
+    }
+
+    .car-item:hover {
+      border-color: #c0392b;
+      box-shadow: 0 4px 12px rgba(192, 57, 43, 0.2);
+    }
+
+    .car-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .car-item-title {
+      font-weight: 600;
+      color: #333;
+      font-size: 1.1em;
+    }
+
+    .car-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .car-item-actions button {
+      padding: 6px 12px;
+      font-size: 0.9em;
+    }
+
+    .car-details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .car-detail {
+      font-size: 0.9em;
+      color: #555;
+    }
+
+    .car-detail-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .search-box {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      left: 0;
+      background: white;
+      border: 2px solid #c0392b;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .search-results.show {
+      display: block;
+    }
+
+    .search-result-item {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .search-result-item:hover {
+      background: #f0f0f0;
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .search-result-vin {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .search-result-model {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .success-message {
+      background: #c6f6d5;
+      border: 2px solid #48bb78;
+      color: #22543d;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .success-message.show {
+      display: block;
+    }
+
+    .error-message {
+      background: #fed7d7;
+      border: 2px solid #f56565;
+      color: #742a2a;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 40px 20px;
+    }
+
+    .empty-state svg {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    .print-section {
+      display: none;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      margin-top: 40px;
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+      .print-section {
+        display: block !important;
+        box-shadow: none;
+      }
+      .form-section, .inventory-section, .no-print {
+        display: none !important;
+      }
+      .print-section {
+        margin: 0;
+        padding: 0;
+      }
+    }
+
+    .print-header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 3px solid #333;
+      padding-bottom: 20px;
+    }
+
+    .print-header h1 {
+      font-size: 2em;
+      margin-bottom: 5px;
+    }
+
+    .print-header .print-logo {
+      max-width: 220px;
+      width: 100%;
+      height: auto;
+      margin-bottom: 8px;
+    }
+
+    .print-header p {
+      font-size: 1em;
+      color: #666;
+    }
+
+    @media print {
+      .print-header .print-logo {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    .print-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .print-content > div {
+      page-break-inside: avoid;
+    }
+
+    .print-field {
+      margin-bottom: 15px;
+    }
+
+    .print-field-label {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9em;
+    }
+
+    .print-field-value {
+      font-size: 1.1em;
+      color: #666;
+      border-bottom: 1px solid #ddd;
+      padding-top: 5px;
+      min-height: 25px;
+    }
+
+    .print-footer {
+      margin-top: 40px;
+      text-align: center;
+      border-top: 1px solid #ddd;
+      padding-top: 20px;
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 1em;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      color: #c0392b;
+      border-bottom-color: #c0392b;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .quick-entry-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    .quick-entry-table th,
+    .quick-entry-table td {
+      padding: 10px;
+      text-align: right;
+      border: 1px solid #ddd;
+    }
+
+    .quick-entry-table th {
+      background: #f0f0f0;
+      font-weight: 600;
+    }
+
+    .quick-entry-table input {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    .export-btn {
+      background: #48bb78;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      margin-top: 10px;
+    }
+    .export-btn:hover {
+      background: #38a169;
+    }
+  </style>
+
+  <!-- API Configuration -->
+  <script>
+    // Check if backend is available
+    const API_URL = 'http://localhost:3001/api';
+
+    async function checkBackend() {
+      try {
+        const response = await fetch(API_URL + '/cars', { mode: 'cors' });
+        if (response.ok) {
+          console.log('✓ Backend מחובר');
+          return true;
+        }
+      } catch (e) {
+        console.log('⚠️ Backend לא זמין - משתמש ב-localStorage');
+        return false;
+      }
+    }
+  </script>
+
+  <div class="container">
+    <header class="no-print">
+      <img src="images/newcar-logo.png" alt="NEW CAR - הדרך הנכונה לרכב חדש" class="app-logo">
+      <p>מערכת ניהול קבלת רכבים</p>
+    </header>
+
+    <div class="main-grid">
+      <!-- Form Section -->
+      <div class="form-section no-print">
+        <div class="success-message" id="successMsg">✓ הרכב נשמר בהצלחה!</div>
+        <div class="error-message" id="errorMsg"></div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="detailed-form">טופס מלא</button>
+          <button class="tab-btn" data-tab="quick-entry">כניסה מהירה</button>
+          <button class="tab-btn" data-tab="import-excel">📥 ייבוא מ-Excel</button>
+        </div>
+
+        <!-- Detailed Form Tab -->
+        <div id="detailed-form" class="tab-content active">
+          <h2>קבלת רכב</h2>
+
+          <div class="search-box">
+            <label for="carSearch">חיפוש רכב לפי מספר רכב</label>
+            <input type="text" id="carSearch" placeholder="הכנס מספר רכב">
+            <div class="search-results" id="searchResults"></div>
+          </div>
+
+          <form id="carForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="vin">מספר רכב <button type="button" class="btn" id="fetchVinDataBtn" style="padding: 5px 10px; font-size: 0.85em; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">🔄 קבל נתונים</button></label>
+                <input type="text" id="vin" inputmode="numeric" placeholder="לדוגמה: 12345678">
+                <small id="vinStatus" style="color: #666; display: block; margin-top: 5px;"></small>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="manufacturer">*יצרן</label>
+                <input type="text" id="manufacturer" placeholder="לדוגמה: BMW">
+              </div>
+              <div class="form-group">
+                <label for="model">*דגם</label>
+                <input type="text" id="model" placeholder="לדוגמה: X5">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="year">*שנה</label>
+                <input type="number" id="year" min="1990" max="2099" placeholder="2023">
+              </div>
+              <div class="form-group">
+                <label for="color">*צבע</label>
+                <input type="text" id="color" placeholder="לדוגמה: שחור מטאליק">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="kilometers">*קילומטר</label>
+                <input type="number" id="kilometers" min="0" placeholder="50000">
+              </div>
+              <div class="form-group">
+                <label for="engine">*נפח מנוע (CC)</label>
+                <input type="number" id="engine" placeholder="2000">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="handNumber">יד (לא כולל סוחרים)</label>
+                <input type="number" id="handNumber" min="1" placeholder="לדוגמה: 2">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="transmission">*תיבת הילוכים</label>
+                <select id="transmission">
+                  <option value="">בחר...</option>
+                  <option value="manual">ידנית</option>
+                  <option value="automatic">אוטומטית</option>
+                  <option value="cvt">CVT</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="condition">*מקוריות הרכב</label>
+                <select id="condition" required>
+                  <option value="">בחר...</option>
+                  <option value="private">פרטי</option>
+                  <option value="taxi">מונית</option>
+                  <option value="rental">השכרה</option>
+                  <option value="company">חברה</option>
+                  <option value="lease">ליסינג</option>
+                  <option value="lease_zero">ליסינג 0 ק"מ</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="price">*מחיר נדרש (₪)</label>
+                <input type="number" id="price" required min="0" placeholder="50000">
+              </div>
+              <div class="form-group">
+                <label for="testValidUntil">*טסט עד מתי</label>
+                <input type="date" id="testValidUntil" required>
+              </div>
+            </div>
+
+            <div class="form-group full">
+              <label for="notes">הערות נוספות</label>
+              <textarea id="notes" placeholder="תיאור נוסף של הרכב, פגמים, תכונות מיוחדות וכו׳"></textarea>
+            </div>
+
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary btn-full">💾 שמור רכב</button>
+              <button type="reset" class="btn btn-secondary btn-full">🔄 נקה טופס</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Quick Entry Tab -->
+        <div id="quick-entry" class="tab-content">
+          <h2>כניסה מהירה</h2>
+          <p style="color: #666; margin-bottom: 15px;">הכנס מידע מרובים במהירות</p>
+          <table class="quick-entry-table">
+            <thead>
+              <tr>
+                <th>מספר רכב</th>
+                <th>יצרן</th>
+                <th>דגם</th>
+                <th>שנה</th>
+                <th>מחיר (₪)</th>
+              </tr>
+            </thead>
+            <tbody id="quickEntryTable">
+              <tr>
+                <td><input type="text" placeholder="מספר רכב"></td>
+                <td><input type="text" placeholder="יצרן"></td>
+                <td><input type="text" placeholder="דגם"></td>
+                <td><input type="number" placeholder="שנה"></td>
+                <td><input type="number" placeholder="מחיר"></td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="btn btn-secondary" style="margin-top: 15px; width: 100%;">+ הוסף שורה</button>
+        </div>
+
+        <!-- Import from Excel Tab -->
+        <div id="import-excel" class="tab-content">
+          <h2>ייבוא מ-Excel</h2>
+          <p style="color: #666; margin-bottom: 20px;">יבא רשימת רכבים מקובץ Excel</p>
+
+          <div class="form-group full">
+            <label for="excelFile">בחר קובץ Excel (.xlsx)</label>
+            <input type="file" id="excelFile" accept=".xlsx,.xls" style="padding: 15px; cursor: pointer;">
+            <small style="color: #666; display: block; margin-top: 10px;">
+              📋 הקובץ צריך להכיל עמודות: מספר רכב, יצרן, דגם, שנה, צבע, קילומטר, מנוע, יד, גיר, מקוריות, מחיר, טסט עד
+            </small>
+          </div>
+
+          <div id="importPreview" style="display: none; margin-top: 20px;">
+            <h3 style="color: #333; margin-bottom: 15px;">תצוגה מקדימה:</h3>
+            <div id="previewTable" style="overflow-x: auto;"></div>
+            <div class="button-group" style="margin-top: 20px;">
+              <button class="btn btn-primary" id="importConfirmBtn" style="flex: 1;">✓ ייבא הכל</button>
+              <button class="btn btn-secondary" id="importCancelBtn" style="flex: 1;">✕ בטל</button>
+            </div>
+          </div>
+
+          <div id="importStatus" style="display: none; margin-top: 20px;">
+            <div id="importMessage" style="padding: 15px; border-radius: 8px; text-align: center; font-weight: 600;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory Section -->
+      <div class="inventory-section no-print">
+        <h2>📦 המלאי שלי</h2>
+        <div class="button-group" style="margin-bottom: 20px;">
+          <button class="export-btn" id="exportExcelBtn" style="flex: 1;">📥 יצוא ל-Excel</button>
+          <button class="btn btn-print" id="enrichAllBtn" style="flex: 1;">🔄 השלם נתונים חסרים לכולם</button>
+        </div>
+        <div id="inventoryList" class="empty-state">
+          <p>אין רכבים ברשימה. התחל בהוספת רכב חדש.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Print Section -->
+    <div class="print-section" id="printSection">
+      <div class="print-header">
+        <img src="images/newcar-logo.png" alt="NEW CAR" class="print-logo">
+        <p>טופס קבלת רכב</p>
+      </div>
+
+      <div class="print-content" id="printContent">
+        <!-- Will be filled dynamically -->
+      </div>
+
+      <div class="print-footer">
+        <p>© ניו קאר חדרה - כל הזכויות שמורות</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Car database (in real app, this would be a backend)
+    // localStorage יכול להיות חסום בהקשרים מסוימים (תצוגה מקדימה מוטבעת, מדיניות דפדפן וכו') -
+    // עוטפים ב-try/catch כדי שהאפליקציה תמשיך לעבוד (בלי שמירה קבועה) במקום לקרוס לגמרי
+    let storageAvailable = true;
+    function loadCars() {
+      try {
+        return JSON.parse(localStorage.getItem('carInventory')) || [];
+      } catch (e) {
+        storageAvailable = false;
+        return [];
+      }
+    }
+    function saveCars() {
+      try {
+        localStorage.setItem('carInventory', JSON.stringify(cars));
+      } catch (e) {
+        storageAvailable = false;
+      }
+    }
+    let cars = loadCars();
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(tab).classList.add('active');
+      });
+    });
+
+    // Simulated car database for auto-fill (lookup by מספר רכב) - fallback כשאין חיבור לאינטרנט/backend
+    // הערה: מספר "יד" אינו חלק מהמאגר הפתוח של משרד התחבורה (מידע פרטי) - כאן זו רק דוגמה לצורך הדגמה
+    const carDatabase = {
+      '78391203': { manufacturer: 'Mazda', model: '3', year: 2020, engine: 1600, transmission: 'automatic', color: 'לבן', kilometers: 42000, testValidUntil: '2026-11-30', handNumber: 2 },
+      '12345678': { manufacturer: 'BMW', model: '320i', year: 2018, engine: 1600, transmission: 'automatic', color: 'שחור', kilometers: 95000, testValidUntil: '2026-09-15', handNumber: 1 },
+      '23456789': { manufacturer: 'Toyota', model: 'Corolla', year: 2019, engine: 1600, transmission: 'automatic', color: 'לבן', kilometers: 45000, testValidUntil: '2026-05-20', handNumber: 2 },
+      '34567890': { manufacturer: 'Volkswagen', model: 'Golf', year: 2020, engine: 1400, transmission: 'manual', color: 'אדום', kilometers: 32000, testValidUntil: '2027-01-10', handNumber: 1 },
+      '45678901': { manufacturer: 'Volkswagen', model: 'Passat', year: 2015, engine: 2000, transmission: 'automatic', color: 'כסוף', kilometers: 125000, testValidUntil: '2026-07-01', handNumber: 3 },
+      '56789012': { manufacturer: 'Hyundai', model: 'Elantra', year: 2017, engine: 1600, transmission: 'automatic', color: 'ירוק', kilometers: 105000, testValidUntil: '2026-08-01', handNumber: 2 },
+    };
+
+    const carSearch = document.getElementById('carSearch');
+    const searchResults = document.getElementById('searchResults');
+    const carForm = document.getElementById('carForm');
+    const inventoryList = document.getElementById('inventoryList');
+    const successMsg = document.getElementById('successMsg');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function showMessage(type, message) {
+      const msg = type === 'success' ? successMsg : errorMsg;
+      msg.textContent = message;
+      msg.classList.add('show');
+      setTimeout(() => msg.classList.remove('show'), 3000);
+    }
+
+    // Car search with auto-fill
+    carSearch.addEventListener('input', (e) => {
+      const query = e.target.value.toUpperCase();
+      searchResults.innerHTML = '';
+
+      if (query.length < 2) {
+        searchResults.classList.remove('show');
+        return;
+      }
+
+      const results = Object.entries(carDatabase).filter(([vin, _]) =>
+        vin.includes(query)
+      );
+
+      if (results.length === 0) {
+        searchResults.classList.remove('show');
+        return;
+      }
+
+      results.forEach(([vin, data]) => {
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'search-result-item';
+        resultDiv.innerHTML = `
+          <div class="search-result-vin">${vin}</div>
+          <div class="search-result-model">${data.manufacturer} ${data.model} (${data.year})</div>
+        `;
+        resultDiv.addEventListener('click', () => {
+          document.getElementById('vin').value = vin;
+          document.getElementById('manufacturer').value = data.manufacturer;
+          document.getElementById('model').value = data.model;
+          document.getElementById('year').value = data.year;
+          document.getElementById('engine').value = data.engine;
+          document.getElementById('transmission').value = data.transmission;
+          if (data.testValidUntil) {
+            document.getElementById('testValidUntil').value = data.testValidUntil;
+          }
+          if (data.handNumber) {
+            document.getElementById('handNumber').value = data.handNumber;
+          }
+          carSearch.value = '';
+          searchResults.innerHTML = '';
+          searchResults.classList.remove('show');
+          document.getElementById('condition').focus();
+        });
+        searchResults.appendChild(resultDiv);
+      });
+
+      searchResults.classList.add('show');
+    });
+
+    // Close search results on click outside
+    document.addEventListener('click', (e) => {
+      if (e.target !== carSearch) {
+        searchResults.classList.remove('show');
+      }
+    });
+
+    // Fetch VIN data from ministry of transport database
+    const fetchVinDataBtn = document.getElementById('fetchVinDataBtn');
+    const vinStatus = document.getElementById('vinStatus');
+    const vinInput = document.getElementById('vin');
+
+    function fillVehicleForm(carData) {
+      document.getElementById('manufacturer').value = carData.manufacturer || '';
+      document.getElementById('model').value = carData.model || '';
+      document.getElementById('year').value = carData.year || '';
+      document.getElementById('engine').value = carData.engine || '';
+      document.getElementById('transmission').value = carData.transmission || 'automatic';
+      document.getElementById('color').value = carData.color || '';
+      document.getElementById('kilometers').value = carData.kilometers || '';
+      if (carData.testValidUntil) {
+        document.getElementById('testValidUntil').value = carData.testValidUntil;
+      }
+      if (carData.handNumber) {
+        document.getElementById('handNumber').value = carData.handNumber;
+      }
+      if (carData.condition) {
+        document.getElementById('condition').value = carData.condition;
+      }
+      document.getElementById('condition').focus();
+    }
+
+    // שדה ה-baalut במשרד התחבורה מציין את סוג הבעלות הרשמי של הרכב (פרטי/ליסינג/השכרה/חברה/מונית)
+    // ומתאים ישירות ל"מקוריות הרכב" בטופס - "ליסינג 0 ק"מ" הוא סיווג פנימי שלנו ואינו קיים ב-baalut, לכן תמיד ממופה ל"ליסינג" הרגיל
+    function mapBaalutToCondition(baalut) {
+      if (!baalut) return '';
+      const b = baalut.trim();
+      if (b.includes('פרטי')) return 'private';
+      if (b.includes('מונית')) return 'taxi';
+      if (b.includes('השכרה')) return 'rental';
+      if (b.includes('ליסינג') || b.includes('החכר')) return 'lease';
+      if (b.includes('חברה') || b.includes('ציבורי') || b.includes('משרד')) return 'company';
+      return '';
+    }
+
+    // מחשב "יד" מתוך היסטוריית העברות הבעלות: סופר שינויי בעלות ייחודיים ומדלג על "סוחר"
+    // (רישום זמני אצל סוחר בין בעלים לבעלים אינו נחשב "יד" בפני עצמו)
+    function calculateHandNumber(historyRecords) {
+      const sorted = [...historyRecords].sort((a, b) => (a.baalut_dt || 0) - (b.baalut_dt || 0));
+      const nonDealer = sorted.filter(r => r.baalut && !r.baalut.includes('סוחר'));
+      let count = 0;
+      let lastBaalut = null;
+      nonDealer.forEach(r => {
+        if (r.baalut !== lastBaalut) {
+          count++;
+          lastBaalut = r.baalut;
+        }
+      });
+      return count || '';
+    }
+
+    // שאילתה משולבת מול 4 מאגרי הנתונים הפתוחים הרלוונטיים של משרד התחבורה (data.gov.il):
+    // 1) רישום בסיסי לפי מספר רכב | 2) מפרט טכני לפי דגם (נפח מנוע, גיר) | 3) היסטוריית בעלויות (למספר יד) | 4) ק"מ בטסט האחרון
+    async function fetchFromGovApi(plateNumber) {
+      const baseUrl = 'https://data.gov.il/api/3/action/datastore_search';
+
+      const vehicleRes = await fetch(`${baseUrl}?resource_id=053cea08-09bc-40ec-8f7a-156f0677aff3&filters=${encodeURIComponent(JSON.stringify({ mispar_rechev: plateNumber }))}`);
+      const vehicleJson = await vehicleRes.json();
+      if (!vehicleJson.success || vehicleJson.result.records.length === 0) return null;
+      const vehicle = vehicleJson.result.records[0];
+      console.log('רשומת רישום בסיסית:', vehicle);
+
+      const data = {
+        manufacturer: vehicle.tozeret_nm,
+        model: vehicle.kinuy_mishari || vehicle.degem_nm,
+        year: vehicle.shnat_yitzur,
+        color: vehicle.tzeva_rechev,
+        testValidUntil: vehicle.tokef_dt ? vehicle.tokef_dt.split('T')[0] : '',
+        condition: mapBaalutToCondition(vehicle.baalut),
+        engine: '',
+        transmission: 'automatic',
+        kilometers: '',
+        handNumber: ''
+      };
+
+      const [specResult, historyResult, kmResult] = await Promise.allSettled([
+        fetch(`${baseUrl}?resource_id=142afde2-6228-49f9-8a29-9b6c3a0cbe40&filters=${encodeURIComponent(JSON.stringify({ tozeret_cd: vehicle.tozeret_cd, degem_cd: vehicle.degem_cd }))}`).then(r => r.json()),
+        fetch(`${baseUrl}?resource_id=bb2355dc-9ec7-4f06-9c3f-3344672171da&filters=${encodeURIComponent(JSON.stringify({ mispar_rechev: plateNumber }))}`).then(r => r.json()),
+        fetch(`${baseUrl}?resource_id=56063a99-8a3e-4ff4-912e-5966c0279bad&filters=${encodeURIComponent(JSON.stringify({ mispar_rechev: plateNumber }))}`).then(r => r.json()),
+      ]);
+
+      // מפרט טכני לפי דגם - נפח מנוע וגיר
+      if (specResult.status === 'fulfilled' && specResult.value.success && specResult.value.result.records.length > 0) {
+        const records = specResult.value.result.records;
+        const spec = records.find(r => r.shnat_yitzur == vehicle.shnat_yitzur) || records[0];
+        console.log('מפרט טכני לפי דגם:', spec);
+        data.engine = spec.nefah_manoa || '';
+        data.transmission = spec.automatic_ind == 1 ? 'automatic' : 'manual';
+      }
+
+      // היסטוריית בעלויות - חישוב מספר יד ללא סוחרים
+      if (historyResult.status === 'fulfilled' && historyResult.value.success && historyResult.value.result.records.length > 0) {
+        console.log('היסטוריית בעלויות:', historyResult.value.result.records);
+        data.handNumber = calculateHandNumber(historyResult.value.result.records);
+      }
+
+      // קילומטראז' בפועל מהטסט האחרון
+      if (kmResult.status === 'fulfilled' && kmResult.value.success && kmResult.value.result.records.length > 0) {
+        const km = kmResult.value.result.records[0].kilometer_test_aharon;
+        if (km) data.kilometers = km;
+      }
+
+      return data;
+    }
+
+    fetchVinDataBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const plateNumber = vinInput.value.trim();
+
+      if (!plateNumber) {
+        vinStatus.textContent = '❌ אנא הכנס מספר רכב תחילה';
+        vinStatus.style.color = '#e53e3e';
+        return;
+      }
+
+      vinStatus.textContent = '🔄 מחפש במשרד התחבורה...';
+      vinStatus.style.color = '#4299e1';
+
+      // 1. נסה מול ה-Backend המקומי (אם פעיל)
+      try {
+        const response = await fetch(`${API_URL}/vehicle/${plateNumber}`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          fillVehicleForm(result.data);
+          vinStatus.textContent = '✓ הנתונים נשלפו בהצלחה ממשרד התחבורה';
+          vinStatus.style.color = '#48bb78';
+          return;
+        }
+      } catch (error) {
+        // ה-Backend לא פעיל, ממשיכים לניסיון הבא
+      }
+
+      // 2. נסה מול ה-API הפתוח האמיתי של data.gov.il (משרד התחבורה)
+      try {
+        const govData = await fetchFromGovApi(plateNumber);
+        if (govData) {
+          fillVehicleForm(govData);
+
+          const missing = [];
+          if (!govData.engine) missing.push('נפח מנוע');
+          if (!govData.handNumber) missing.push('מספר יד');
+
+          if (missing.length > 0) {
+            vinStatus.textContent = `✓ הנתונים נשלפו, אך ${missing.join(' ו')} אינם זמינים - נא למלא ידנית`;
+            vinStatus.style.color = '#ed8936';
+          } else {
+            vinStatus.textContent = '✓ הנתונים נשלפו בהצלחה מאתר משרד התחבורה (data.gov.il)';
+            vinStatus.style.color = '#48bb78';
+          }
+          return;
+        }
+      } catch (error) {
+        // אין חיבור/CORS חסום, ממשיכים לבסיס הנתונים המקומי
+      }
+
+      // 3. Fallback: בסיס נתונים מקומי לדוגמה
+      const carData = carDatabase[plateNumber];
+      if (carData) {
+        fillVehicleForm(carData);
+        vinStatus.textContent = '✓ הנתונים נשלפו בהצלחה (בסיס נתונים לדוגמה)';
+        vinStatus.style.color = '#48bb78';
+      } else {
+        vinStatus.textContent = '⚠️ מספר הרכב לא נמצא. ניתן למלא את הפרטים ידנית.';
+        vinStatus.style.color = '#ed8936';
+      }
+    });
+
+    // Form submit
+    carForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Validation - required fields (VIN אינו חובה - ניתן למלא ידנית אם לא נמצא)
+      const condition = document.getElementById('condition').value;
+      const price = document.getElementById('price').value;
+      const testValidUntil = document.getElementById('testValidUntil').value;
+
+      if (!condition || !price || !testValidUntil) {
+        showMessage('error', '⚠️ אנא מלא את: מקוריות הרכב, מחיר, וטסט עד מתי');
+        return;
+      }
+
+      const car = {
+        id: Date.now(),
+        vin: document.getElementById('vin').value,
+        licensePlate: '', // לא משמש עוד
+        manufacturer: document.getElementById('manufacturer').value,
+        model: document.getElementById('model').value,
+        year: document.getElementById('year').value || new Date().getFullYear(),
+        color: document.getElementById('color').value,
+        kilometers: document.getElementById('kilometers').value || 0,
+        engine: document.getElementById('engine').value || 0,
+        handNumber: document.getElementById('handNumber').value || '',
+        transmission: document.getElementById('transmission').value || 'automatic',
+        condition: condition,
+        price: price,
+        testValidUntil: testValidUntil,
+        notes: document.getElementById('notes').value,
+        addedDate: new Date().toLocaleDateString('he-IL'),
+      };
+
+      // Try to save to backend
+      try {
+        const response = await fetch(`${API_URL}/cars`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(car)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          car.id = result.id;
+        }
+      } catch (error) {
+        console.log('Backend אינו זמין - שמירה ב-localStorage');
+      }
+
+      cars.push(car);
+      saveCars();
+
+      carForm.reset();
+      showMessage('success', '✓ הרכב נשמר בהצלחה!');
+      renderInventory();
+    });
+
+    // Render inventory
+    function renderInventory() {
+      if (cars.length === 0) {
+        inventoryList.innerHTML = '<p>אין רכבים ברשימה. התחל בהוספת רכב חדש.</p>';
+        return;
+      }
+
+      inventoryList.innerHTML = cars.map(car => `
+        <div class="car-item">
+          <div class="car-item-header">
+            <div class="car-item-title">${car.manufacturer} ${car.model} • ${car.year}</div>
+            <div class="car-item-actions">
+              <button class="btn btn-secondary" onclick="enrichCar(${car.id})" id="enrichBtn-${car.id}">🔄 השלם נתונים</button>
+              <button class="btn btn-print" onclick="printCar(${car.id})">🖨️ הדפס</button>
+              <button class="btn btn-danger" onclick="deleteCar(${car.id})">🗑️ מחק</button>
+            </div>
+          </div>
+          <div class="car-details">
+            <div class="car-detail"><span class="car-detail-label">מספר רכב:</span> ${car.vin}</div>
+            <div class="car-detail"><span class="car-detail-label">קילומטר:</span> ${car.kilometers} ק״מ</div>
+            <div class="car-detail"><span class="car-detail-label">מחיר:</span> ₪${parseInt(car.price).toLocaleString('he-IL')}</div>
+            <div class="car-detail"><span class="car-detail-label">מנוע:</span> ${car.engine} cc</div>
+            ${car.handNumber ? `<div class="car-detail"><span class="car-detail-label">יד:</span> ${car.handNumber}</div>` : ''}
+            <div class="car-detail"><span class="car-detail-label">גיר:</span> ${car.transmission === 'manual' ? 'ידנית' : 'אוטומטית'}</div>
+            <div class="car-detail"><span class="car-detail-label">צבע:</span> ${car.color}</div>
+            <div class="car-detail"><span class="car-detail-label">טסט עד:</span> ${car.testValidUntil}</div>
+            ${car.notes ? `<div class="car-detail" style="grid-column: 1/-1;"><span class="car-detail-label">הערות:</span> ${car.notes}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // שדה נחשב "חסר" אם הוא ריק, לא מוגדר, או 0 (0 משמש כברירת מחדל לשדות מספריים שלא מולאו)
+    function isFieldEmpty(value) {
+      return value === undefined || value === null || value === '' || value === 0 || value === '0';
+    }
+
+    // ממלא ב-car רק שדות שהיו חסרים (לא דורס נתונים קיימים), ומחזיר כמה שדות מולאו
+    function applyMissingFields(car, govData) {
+      const fields = ['manufacturer', 'model', 'year', 'color', 'engine', 'transmission', 'kilometers', 'handNumber', 'condition', 'testValidUntil'];
+      let filledCount = 0;
+      fields.forEach(field => {
+        if (isFieldEmpty(car[field]) && !isFieldEmpty(govData[field])) {
+          car[field] = govData[field];
+          filledCount++;
+        }
+      });
+      return filledCount;
+    }
+
+    // שולף נתונים ממשרד התחבורה עבור מספר רכב נתון (ללא תלות בטופס - משמש להשלמת נתונים לרכבים קיימים במלאי)
+    // אותה שרשרת נפילה כמו כפתור "קבל נתונים" בטופס: Backend מקומי → API אמיתי → בסיס נתונים לדוגמה
+    async function fetchEnrichmentData(plateNumber) {
+      if (!plateNumber) return null;
+
+      try {
+        const response = await fetch(`${API_URL}/vehicle/${plateNumber}`);
+        const result = await response.json();
+        if (result.success && result.data) return result.data;
+      } catch (error) {
+        // Backend לא זמין, ממשיכים ל-API הפתוח
+      }
+
+      try {
+        const govData = await fetchFromGovApi(plateNumber);
+        if (govData) return govData;
+      } catch (error) {
+        // אין חיבור/CORS חסום, ממשיכים לבסיס הנתונים המקומי
+      }
+
+      return carDatabase[plateNumber] || null;
+    }
+
+    // השלמת נתונים חסרים לרכב בודד במלאי
+    async function enrichCar(id) {
+      const car = cars.find(c => c.id === id);
+      if (!car) return;
+
+      if (!car.vin) {
+        showMessage('error', '⚠️ לרכב זה אין מספר רכב - לא ניתן לשלוף נתונים');
+        return;
+      }
+
+      const btn = document.getElementById(`enrichBtn-${id}`);
+      if (btn) { btn.disabled = true; btn.textContent = '🔄 שולף...'; }
+
+      const govData = await fetchEnrichmentData(car.vin);
+
+      if (!govData) {
+        showMessage('error', `⚠️ לא נמצאו נתונים עבור מספר רכב ${car.vin}`);
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 השלם נתונים'; }
+        return;
+      }
+
+      const filledCount = applyMissingFields(car, govData);
+      saveCars();
+      renderInventory();
+
+      showMessage('success', filledCount > 0
+        ? `✓ הושלמו ${filledCount} שדות עבור ${car.manufacturer || car.vin} ${car.model || ''}`
+        : `ℹ️ לא נמצאו שדות חסרים להשלמה עבור ${car.manufacturer || car.vin}`);
+    }
+
+    // השלמת נתונים חסרים לכל הרכבים במלאי, אחד אחרי השני
+    const enrichAllBtn = document.getElementById('enrichAllBtn');
+    let isEnrichingAll = false;
+
+    enrichAllBtn.addEventListener('click', async () => {
+      if (isEnrichingAll) return;
+
+      if (cars.length === 0) {
+        showMessage('error', '⚠️ אין רכבים במלאי');
+        return;
+      }
+
+      isEnrichingAll = true;
+      enrichAllBtn.disabled = true;
+
+      let totalFilled = 0;
+      let carsUpdated = 0;
+
+      for (let i = 0; i < cars.length; i++) {
+        const car = cars[i];
+        enrichAllBtn.textContent = `🔄 משלים נתונים... (${i + 1}/${cars.length})`;
+
+        if (!car.vin) continue;
+
+        const govData = await fetchEnrichmentData(car.vin);
+        if (govData) {
+          const filled = applyMissingFields(car, govData);
+          if (filled > 0) {
+            totalFilled += filled;
+            carsUpdated++;
+          }
+        }
+      }
+
+      saveCars();
+      renderInventory();
+
+      enrichAllBtn.disabled = false;
+      enrichAllBtn.textContent = '🔄 השלם נתונים חסרים לכולם';
+      isEnrichingAll = false;
+
+      showMessage('success', `✓ הושלם! מולאו ${totalFilled} שדות חסרים ב-${carsUpdated} מתוך ${cars.length} רכבים`);
+    });
+
+    // Delete car
+    function deleteCar(id) {
+      if (confirm('אתה בטוח שברצונך למחוק רכב זה?')) {
+        cars = cars.filter(car => car.id !== id);
+        saveCars();
+        renderInventory();
+        showMessage('success', '✓ הרכב נמחק');
+      }
+    }
+
+    // Print car
+    function printCar(id) {
+      const car = cars.find(c => c.id === id);
+      if (!car) return;
+
+      const printContent = document.getElementById('printContent');
+      printContent.innerHTML = `
+        <div>
+          <div class="print-field">
+            <div class="print-field-label">מספר רכב</div>
+            <div class="print-field-value">${car.vin}</div>
+          </div>
+          <div class="print-field">
+            <div class="print-field-label">יצרן</div>
+            <div class="print-field-value">${car.manufacturer}</div>
+          </div>
+          <div class="print-field">
+            <div class="print-field-label">דגם</div>
+            <div class="print-field-value">${car.model}</div>
+          </div>
+        </div>
+        <div>
+          <div class="print-field">
+            <div class="print-field-label">שנה</div>
+            <div class="print-field-value">${car.year}</div>
+          </div>
+          <div class="print-field">
+            <div class="print-field-label">צבע</div>
+            <div class="print-field-value">${car.color}</div>
+          </div>
+          <div class="print-field">
+            <div class="print-field-label">קילומטר</div>
+            <div class="print-field-value">${car.kilometers} ק״מ</div>
+          </div>
+          <div class="print-field">
+            <div class="print-field-label">נפח מנוע</div>
+            <div class="print-field-value">${car.engine} cc</div>
+          </div>
+          ${car.handNumber ? `
+          <div class="print-field">
+            <div class="print-field-label">יד</div>
+            <div class="print-field-value">${car.handNumber}</div>
+          </div>
+          ` : ''}
+        </div>
+      `;
+
+      const moreContent = document.createElement('div');
+      moreContent.style.gridColumn = '1 / -1';
+      moreContent.innerHTML = `
+        <div class="print-field">
+          <div class="print-field-label">תיבת הילוכים</div>
+          <div class="print-field-value">${car.transmission === 'manual' ? 'ידנית' : 'אוטומטית'}</div>
+        </div>
+        <div class="print-field">
+          <div class="print-field-label">מקוריות הרכב</div>
+          <div class="print-field-value">${
+            car.condition === 'private' ? 'פרטי' :
+            car.condition === 'taxi' ? 'מונית' :
+            car.condition === 'rental' ? 'השכרה' :
+            car.condition === 'company' ? 'חברה' :
+            car.condition === 'lease' ? 'ליסינג' :
+            car.condition === 'lease_zero' ? 'ליסינג 0 ק"מ' : car.condition
+          }</div>
+        </div>
+        <div class="print-field">
+          <div class="print-field-label">מחיר נדרש</div>
+          <div class="print-field-value">₪${parseInt(car.price).toLocaleString('he-IL')}</div>
+        </div>
+        <div class="print-field">
+          <div class="print-field-label">טסט עד מתי</div>
+          <div class="print-field-value">${car.testValidUntil}</div>
+        </div>
+        ${car.notes ? `
+        <div class="print-field">
+          <div class="print-field-label">הערות נוספות</div>
+          <div class="print-field-value">${car.notes}</div>
+        </div>
+        ` : ''}
+      `;
+      printContent.appendChild(moreContent);
+
+      window.print();
+    }
+
+    // Excel Import
+    const excelFileInput = document.getElementById('excelFile');
+    const importPreview = document.getElementById('importPreview');
+    const previewTable = document.getElementById('previewTable');
+    const importConfirmBtn = document.getElementById('importConfirmBtn');
+    const importCancelBtn = document.getElementById('importCancelBtn');
+    const importStatus = document.getElementById('importStatus');
+    const importMessage = document.getElementById('importMessage');
+    let importedData = [];
+
+    excelFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = new Uint8Array(event.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+          if (jsonData.length === 0) {
+            showMessage('error', 'הקובץ ריק או לא מכיל נתונים');
+            return;
+          }
+
+          importedData = jsonData.map((row, idx) => ({
+            id: Date.now() + idx,
+            vin: (row['מספר רכב'] || row.VIN || row['מספר הרכב'] || '').toString().trim(),
+            manufacturer: (row.יצרן || row['Manufacturer'] || '').toString().trim(),
+            model: (row.דגם || row['Model'] || '').toString().trim(),
+            year: parseInt(row.שנה || row['Year']) || new Date().getFullYear(),
+            color: (row.צבע || row['Color'] || '').toString().trim(),
+            kilometers: parseInt(row.קילומטר || row['Kilometers']) || 0,
+            engine: parseInt(row.מנוע || row['Engine']) || 0,
+            handNumber: (row.יד || row['Hand'] || '').toString().trim(),
+            transmission: (row.גיר || row['Transmission'] || 'automatic').toString().toLowerCase(),
+            condition: (row.מקוריות || row['Condition'] || 'original').toString().toLowerCase(),
+            price: parseInt(row.מחיר || row['Price']) || 0,
+            testValidUntil: (row['טסט עד'] || row['Test Until'] || row['Test Valid'] || new Date().toISOString().split('T')[0]).toString().trim(),
+            notes: (row.הערות || row['Notes'] || '').toString().trim(),
+            addedDate: new Date().toLocaleDateString('he-IL'),
+          }));
+
+          showPreview();
+        } catch (error) {
+          showMessage('error', '❌ שגיאה בקריאת הקובץ: ' + error.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function showPreview() {
+      const tableHTML = `
+        <table class="quick-entry-table" style="font-size: 0.9em;">
+          <thead>
+            <tr>
+              <th>יצרן</th>
+              <th>דגם</th>
+              <th>שנה</th>
+              <th>מספר רכב</th>
+              <th>קילומטר</th>
+              <th>מחיר (₪)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${importedData.map(car => `
+              <tr>
+                <td>${car.manufacturer || '-'}</td>
+                <td>${car.model || '-'}</td>
+                <td>${car.year || '-'}</td>
+                <td style="font-size: 0.8em; direction: ltr;">${car.vin || '-'}</td>
+                <td>${car.kilometers || '0'}</td>
+                <td>${car.price ? parseInt(car.price).toLocaleString('he-IL') : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <p style="margin-top: 15px; color: #666; text-align: center;">
+          📊 סה"כ ${importedData.length} רכבים להוספה
+        </p>
+      `;
+      previewTable.innerHTML = tableHTML;
+      importPreview.style.display = 'block';
+      importStatus.style.display = 'none';
+    }
+
+    importConfirmBtn.addEventListener('click', () => {
+      const importedCount = importedData.length;
+      cars.push(...importedData);
+      saveCars();
+      renderInventory();
+
+      importPreview.style.display = 'none';
+      importStatus.style.display = 'block';
+      importMessage.innerHTML = `✓ <strong>הוספה בהצלחה!</strong><br>${importedCount} רכבים נוספו למלאי`;
+      importMessage.style.background = '#c6f6d5';
+      importMessage.style.color = '#22543d';
+      importMessage.style.border = '2px solid #48bb78';
+
+      excelFileInput.value = '';
+      importedData = [];
+
+      setTimeout(() => {
+        importStatus.style.display = 'none';
+        showMessage('success', `✓ ${importedCount} רכבים נוספו בהצלחה!`);
+      }, 2000);
+    });
+
+    importCancelBtn.addEventListener('click', () => {
+      importPreview.style.display = 'none';
+      importStatus.style.display = 'none';
+      excelFileInput.value = '';
+      importedData = [];
+    });
+
+    // Export to Excel
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    if (exportExcelBtn) {
+      exportExcelBtn.addEventListener('click', () => {
+        try {
+          // Try backend first
+          window.location.href = `${API_URL}/export/excel`;
+        } catch (error) {
+          // Fallback: Create Excel with local data
+          const ws = XLSX.utils.json_to_sheet(cars);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'רכבים');
+          XLSX.writeFile(wb, 'newcar-inventory.xlsx');
+        }
+      });
+    }
+
+    // Print car with PDF export button
+    window.printCarWithPDF = function(id) {
+      try {
+        // Try backend PDF export
+        window.open(`${API_URL}/export/pdf/${id}`, '_blank');
+      } catch (error) {
+        // Fallback: print to browser
+        printCar(id);
+      }
+    };
+
+    // Initialize
+    renderInventory();
+    checkBackend();
+  </script>
+</body>
+</html>

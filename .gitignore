@@ -1,0 +1,4 @@
+node_modules/
+cars.db
+*.pdf
+.env
