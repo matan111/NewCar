@@ -1,4 +1,11 @@
 node_modules/
 cars.db
+cars.db-wal
+cars.db-shm
+cars.db-journal
 *.pdf
 .env
+documents/
+backups/
+vehicle-archive.db*
+vehicle-archive-media/

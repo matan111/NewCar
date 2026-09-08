@@ -1,0 +1,114 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('fs');
+const os=require('os');
+const path=require('path');
+const sqlite3=require('sqlite3');
+const express=require('express');
+const multer=require('multer');
+const {ArchiveStore,normalize,dbAll,dbRun}=require('./archive-store');
+const {discover}=require('./archive-search');
+const {mountVehicleArchive}=require('./vehicle-archive');
+const close=db=>new Promise((resolve,reject)=>db.close(e=>e?reject(e):resolve()));
+const fixture=(extra={})=>({plate:'12-345-67',source:'manual_listing',sourceLabel:'Test fixture',sourceUrl:'https://www.yad2.co.il/item/fixture123?spot=paid',kilometers:180000,price:30000,year:2010,evidenceDate:'2018-06-01',dateKind:'published',...extra});
+
+test('old vehicle history persists, tracking URL variants deduplicate, reversions remain versions',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'newcar-archive-test-'));
+ const file=path.join(dir,'archive.db');
+ let db=new sqlite3.Database(file),store=new ArchiveStore(db);
+ await store.ready;
+ const first=await store.ingest([fixture()],'owner');
+ const repeat=await store.ingest([fixture({sourceUrl:'https://www.yad2.co.il/vehicles/item/fixture123?spot=other'})],'owner');
+ assert.equal(first[0].created,true);assert.equal(repeat[0].created,false);
+ await store.ingest([fixture({price:29000})],'owner');
+ await store.ingest([fixture()],'owner');
+ assert.equal((await store.history('1234567')).records.length,3);
+ await close(db);
+ db=new sqlite3.Database(file);store=new ArchiveStore(db);await store.ready;
+ const history=await store.history('1234567');
+ assert.equal(history.records.length,3);assert.equal(history.records[0].year,2010);
+ assert.equal(history.records[0].evidenceDate,'2018-06-01');
+ assert.notEqual(history.records[0].firstSeenAt.slice(0,10),'2018-06-01');
+ await close(db);
+ fs.rmSync(dir,{recursive:true});
+});
+test('unknown dates do not create a made-up historic event or mileage rollback',async()=>{
+ const db=new sqlite3.Database(':memory:'),store=new ArchiveStore(db);
+ await store.ingest([fixture(),fixture({sourceUrl:'https://www.yad2.co.il/item/later',kilometers:90000,evidenceDate:null})],'owner');
+ let h=await store.history('1234567');assert.equal(h.warnings.length,0);
+ assert.equal(h.records[0].dateKind,'unknown');
+ await store.ingest([fixture({sourceUrl:'https://www.yad2.co.il/item/laterdated',kilometers:100000,evidenceDate:'2020-06-01'})],'owner');
+ h=await store.history('1234567');assert.equal(h.warnings.length,1);assert.equal(h.warnings[0].from,180000);
+ await close(db);
+});
+test('imports validate the full batch and cannot claim government provenance',async()=>{
+ const db=new sqlite3.Database(':memory:'),store=new ArchiveStore(db);await store.ready;
+ await assert.rejects(store.ingest([fixture(),fixture({plate:'1'})],'owner'));
+ assert.equal((await store.history('1234567')).records.length,0);
+ assert.throws(()=>normalize(fixture({source:'government'})));
+ assert.throws(()=>normalize(fixture({kilometers:-5})));
+ assert.throws(()=>normalize(fixture({kilometers:true})));
+ assert.throws(()=>normalize(fixture({evidenceDate:'2020-02-30'})));
+ assert.throws(()=>normalize(fixture({sourceUrl:'javascript:alert(1)'})));
+ assert.throws(()=>normalize(fixture({sourceUrl:'https://user:pass@example.com'})));
+ assert.throws(()=>normalize(fixture({description:'x'.repeat(20001)})));
+ await close(db);
+});
+test('concurrent writes preserve only one identical observation',async()=>{
+ const db=new sqlite3.Database(':memory:'),store=new ArchiveStore(db);
+ const results=await Promise.all(Array.from({length:15},()=>store.ingest([fixture()],'owner')));
+ assert.equal(results.filter(r=>r[0].created).length,1);
+ assert.equal((await store.history('1234567')).records.length,1);await close(db);
+});
+test('search requires cited exact identity and does not turn model output into trusted history',async()=>{
+ const candidate={url:'https://www.yad2.co.il/item/fixture123',plate:'1234567',evidence:'מספר רכב 12-345-67. מחיר 30000. קמ 180000.',kilometers:180000,price:30000,year:2010,manufacturer:'Test',model:'Fixture',trim:'',evidenceDate:null,dateKind:'unknown'};
+ let request;
+ const fetchImpl=async(url,opts)=>{request=JSON.parse(opts.body);return {ok:true,json:async()=>({status:'completed',output:[{type:'web_search_call',status:'completed',action:{sources:[{url:candidate.url}]}},{type:'message',content:[{type:'output_text',text:JSON.stringify({listings:[candidate,{...candidate,url:'https://www.yad2.co.il/item/uncited'},{...candidate,url:'https://www.yad2.co.il/item/wrong',plate:'7654321'}]})}]}]})};};
+ const results=await discover('1234567',{apiKey:'test-only',fetchImpl});
+ assert.equal(results.length,1);assert.equal(results[0].identityMethod,'search_candidate');
+ assert.equal(results[0].kilometers,180000);
+ assert.equal(request.tools[0].external_web_access,false);assert.equal(request.store,false);
+ assert.deepEqual(request.tools[0].filters.allowed_domains,['yad2.co.il']);
+ await assert.rejects(discover('1234567',{}),/עדיין לא מחובר/);
+ const badFetch=async()=>({ok:true,json:async()=>({status:'incomplete'})});
+ await assert.rejects(discover('1234567',{apiKey:'test-only',fetchImpl:badFetch}),/לא הושלם/);
+});
+test('API enforces roles, origin, pending review, media type, and cooldown',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'newcar-archive-api-'));
+ const oldPath=process.env.VEHICLE_ARCHIVE_DB_PATH,oldKey=process.env.OPENAI_API_KEY;
+ process.env.VEHICLE_ARCHIVE_DB_PATH=path.join(dir,'archive.db');process.env.OPENAI_API_KEY='test-only';
+ const inventoryDb=new sqlite3.Database(':memory:');
+ const app=express();app.use(express.json());app.use((req,res,next)=>{req.auth={user:'test'};next();});
+ const requireAdmin=(req,res,next)=>req.headers['x-role']==='admin'?next():res.status(403).json({error:'Forbidden'});
+ const archive=mountVehicleArchive(app,{sqlite3,dbPath:path.join(dir,'cars.db'),inventoryDb,requireAdmin,multer,search:async()=>[fixture({plate:'1234567',source:'web_reviewed',identityMethod:'search_candidate'})]});
+ const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
+ const base='http://127.0.0.1:'+server.address().port;
+ const call=(url,body,role='admin',extra={})=>fetch(base+url,{method:body?'POST':'GET',headers:{'x-role':role,'Content-Type':'application/json',...extra},...(body?{body:JSON.stringify(body)}:{})});
+ try{
+  assert.equal((await call('/api/vehicle-archive/status',null,'limited')).status,403);
+  assert.equal((await call('/vehicle-history',null,'limited')).status,403);
+  assert.equal((await call('/api/vehicle-archive/import',{records:[fixture()]},'admin',{Origin:'https://evil.example'})).status,403);
+  assert.equal((await call('/api/vehicle-archive/import',{records:[fixture()]})).status,200);
+  assert.equal((await call('/api/vehicle-archive/1234567/search',{})).status,200);
+  let h=await (await call('/api/vehicle-archive/1234567')).json();
+  assert.equal(h.records.length,1);assert.equal(h.candidates.length,1);
+  const id=h.candidates[0].id;
+  assert.equal((await call('/api/vehicle-archive/candidates/'+id+'/review',{action:'confirm'})).status,200);
+  h=await(await call('/api/vehicle-archive/1234567')).json();assert.equal(h.records.length,2);assert.equal(h.candidates.length,0);
+  assert.equal((await call('/api/vehicle-archive/1234567/search',{})).status,429);
+  const form=new FormData();form.append('image',new Blob(['<svg onload="alert(1)"></svg>'],{type:'image/svg+xml'}),'bad.svg');
+  assert.equal((await fetch(base+'/api/vehicle-archive/events/'+h.records[0].id+'/images',{method:'POST',headers:{'x-role':'admin'},body:form})).status,400);
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aU9sAAAAASUVORK5CYII=','base64');
+  const image=new FormData();image.append('image',new Blob([png],{type:'image/png'}),'test.png');
+  assert.equal((await fetch(base+'/api/vehicle-archive/events/'+h.records[0].id+'/images',{method:'POST',headers:{'x-role':'admin'},body:image})).status,200);
+  h=await(await call('/api/vehicle-archive/1234567')).json();const mediaId=h.records[0].images[0];
+  assert.equal((await call('/api/vehicle-archive/images/'+mediaId,null,'limited')).status,403);
+  const media=await call('/api/vehicle-archive/images/'+mediaId);assert.equal(media.status,200);assert.equal(media.headers.get('content-type'),'image/png');
+ }finally{
+  await new Promise(resolve=>server.close(resolve));await archive.close();await close(inventoryDb);
+  if(oldPath===undefined)delete process.env.VEHICLE_ARCHIVE_DB_PATH;else process.env.VEHICLE_ARCHIVE_DB_PATH=oldPath;
+  if(oldKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldKey;
+  fs.rmSync(dir,{recursive:true});
+ }
+});

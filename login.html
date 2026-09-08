@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ניו קאר - כניסה</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ניו קאר">
+  <meta name="theme-color" content="#c0392b">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f2f3f5; direction: rtl; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+      -webkit-text-size-adjust: 100%;
+    }
+    .card {
+      background: #fff; border-radius: 14px; padding: 32px 26px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.15);
+      width: 100%; max-width: 380px;
+    }
+    .logo { display: block; max-width: 200px; width: 100%; height: auto; margin: 0 auto 22px; }
+    h1 { font-size: 1.25em; color: #333; text-align: center; margin-bottom: 22px; }
+    label { display: block; font-weight: 600; color: #333; font-size: .95em; margin-bottom: 7px; }
+    input {
+      width: 100%; padding: 13px; border: 2px solid #ddd; border-radius: 9px;
+      font-size: 16px; /* חובה 16px - אחרת אייפון מזמזם אוטומטית */
+      font-family: inherit; margin-bottom: 16px; transition: border-color .2s;
+    }
+    input:focus { outline: none; border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
+    button {
+      width: 100%; padding: 14px; border: none; border-radius: 9px;
+      background: #c0392b; color: #fff; font-size: 1.05em; font-weight: 700;
+      cursor: pointer; min-height: 50px; font-family: inherit;
+    }
+    button:active { background: #a93226; }
+    button:disabled { opacity: .6; cursor: default; }
+    .err {
+      background: #fed7d7; border: 1px solid #f56565; color: #742a2a;
+      padding: 11px; border-radius: 8px; margin-bottom: 16px; font-size: .92em; display: none;
+    }
+    .err.show { display: block; }
+    .note { text-align: center; color: #999; font-size: .82em; margin-top: 16px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <form class="card" id="f">
+    <img class="logo" src="images/newcar-logo.png" alt="ניו קאר">
+    <h1>כניסה למערכת</h1>
+    <div class="err" id="err"></div>
+    <label for="u">שם משתמש</label>
+    <input id="u" name="username" type="text" autocomplete="username"
+           autocapitalize="none" autocorrect="off" spellcheck="false" required>
+    <label for="p">סיסמה</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit" id="b">כניסה</button>
+    <div class="note">הכניסה נשמרת במכשיר הזה — לא תצטרך להזין שוב.</div>
+  </form>
+  <script>
+    var f = document.getElementById('f'), b = document.getElementById('b'), err = document.getElementById('err');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      err.classList.remove('show');
+      b.disabled = true; b.textContent = 'מתחבר...';
+      fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          username: document.getElementById('u').value,
+          password: document.getElementById('p').value
+        })
+      })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (res.ok && res.j.success) { window.location.replace('/car-reception.html'); return; }
+        throw new Error((res.j && res.j.error) || 'ההתחברות נכשלה');
+      })
+      .catch(function (e) {
+        err.textContent = e.message || 'ההתחברות נכשלה';
+        err.classList.add('show');
+        b.disabled = false; b.textContent = 'כניסה';
+        document.getElementById('p').value = '';
+      });
+    });
+  </script>
+</body>
+</html>

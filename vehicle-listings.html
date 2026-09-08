@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>מודעות מהאינטרנט | ניו קאר</title>
+<style>
+:root{--ink:#16304a;--muted:#607489;--line:#dce5ed;--blue:#1765d1;--bg:#f4f7fb}*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--bg);font-family:Arial,sans-serif;line-height:1.6}header{background:#102b45;color:#fff;padding:20px max(20px,calc((100% - 1100px)/2));display:flex;justify-content:space-between;gap:15px;align-items:center}header strong{font-size:21px}header a{color:#dbe9ff;text-decoration:none}main{max-width:1100px;padding:0 20px;margin:30px auto}h1{font-size:30px;line-height:1.3;margin:10px 0}h2{font-size:20px;margin:0}h3{font-size:19px;margin:0}p{margin:8px 0}.muted,small{color:var(--muted)}.panel,.card{background:white;border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0}.panel{box-shadow:0 6px 24px #16304a05}.tag{font-size:12px;border-radius:20px;background:#e7f0ff;color:#235b9c;padding:5px 10px;display:inline-block}.green{background:#e8f5ec;color:#28613a}.filters{display:grid;grid-template-columns:1.2fr 1.2fr .8fr 1fr;gap:12px;margin:15px 0}label{font-weight:600;font-size:14px;display:block}input,textarea{width:100%;padding:10px 12px;border:1px solid #becddd;border-radius:9px;font:inherit;background:white;color:var(--ink)}input:focus,textarea:focus{outline:2px solid #8cb9f6;outline-offset:1px}input[type=checkbox]{width:auto}button,.button{border:0;background:var(--blue);color:white;font:inherit;font-weight:600;border-radius:9px;padding:11px 16px;text-decoration:none;cursor:pointer;display:inline-block}button.secondary{background:#edf3fb;color:var(--ink)}button:disabled{opacity:.5;cursor:not-allowed}.actions,.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.row{justify-content:space-between}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.stat{background:#f1f6fd;border-radius:12px;padding:15px}.stat b{font-size:25px;display:block}.stat span{font-size:13px;color:var(--muted)}.note{padding:14px 16px;background:#fff7e7;border:1px solid #efdaab;border-radius:12px;margin:14px 0}.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{margin:0;min-width:0}.metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:18px 0}.metrics b{font-size:22px;display:block}.metrics small{font-size:12px}.dates{font-size:13px;padding:12px 0;border-top:1px solid var(--line)}details{margin-top:14px}summary{font-weight:600;cursor:pointer}blockquote{background:#f8fafc;border-right:3px solid #abc8ef;padding:10px 12px;margin:10px 0;white-space:pre-wrap;font-size:14px;overflow-wrap:anywhere}a{color:var(--blue)}.link-form{margin-top:12px;display:grid;gap:12px}.empty{padding:35px;text-align:center;color:var(--muted)}#message:not(:empty){padding:14px 18px;background:#e5f2e9;border-radius:12px;position:sticky;top:10px;z-index:2}#message.error{background:#fff0f0;color:#922b2b}.version{padding:10px 0;border-bottom:1px solid var(--line)}[hidden]{display:none!important}@media(max-width:720px){.cards{grid-template-columns:1fr}.filters{grid-template-columns:1fr 1fr}main{padding:0 12px}header{padding:15px;align-items:start;flex-direction:column}.panel,.card{padding:17px}.stats{gap:7px}.stat{padding:10px}.stat b{font-size:22px}.metrics b{font-size:21px}h1{font-size:26px}.actions button{flex:1}}
+</style>
+</head>
+<body>
+<header><strong>NEW CAR · מודעות מהאינטרנט</strong><a href="/vehicle-history">לתיקי היסטוריית רכב ←</a></header>
+<main>
+<span class="tag green">יד2 ו־KEYZ · מקור האיסוף מסומן בכל מודעה</span>
+<h1>קודם אוספים מודעה.<br>אחר כך בונים היסטוריה.</h1>
+<p class="muted">מאגר מצטבר של מחירי פרסום וק״מ. מודעה ללא מספר רישוי נשמרת בנפרד עד לאימות השיוך.</p>
+<div id="message" role="status" aria-live="polite"></div>
+<section class="panel">
+<div class="row"><h2>אילו רכבים מעניינים אותך?</h2><span class="tag">לפי יצרן, דגם ושנתון</span></div>
+<form id="filters">
+<div class="filters">
+<label>יצרן<input name="manufacturer" value="טויוטה" maxlength="120" required></label>
+<label>דגם<input name="model" value="קורולה" maxlength="120" required></label>
+<label>שנת ייצור<input name="year" type="number" value="2022" min="1900" max="2100" required></label>
+<label>רמת גימור <small>(לא חובה)</small><input name="trim" value="Sun" maxlength="120"></label>
+</div>
+<div class="actions"><button type="submit" class="secondary">הצגת מודעות שנשמרו</button><button type="button" id="collect" disabled>חיפוש יד2 לפי הדגם</button><button type="button" class="secondary" id="all">כל המודעות</button></div>
+</form>
+<p id="connection" class="muted">בודק חיבור לשירות החיפוש…</p>
+<div class="note">KEYZ: פיילוט קריאה ישירה מדפי מודעות שהתגלו במפת האתר הציבורית, ללא בחירת דגם. יד2: נתוני חיפוש שמורים בלבד; הקריאה הישירה נחסמה בבדיקה. זה אינו מאגר מלא, ואין איסוף מתוזמן ברקע. זמינות הרכב אצל המוכר לא אומתה.</div>
+</section>
+<section class="panel">
+<div class="row"><h2 id="resultTitle">המודעות שנאספו</h2><span id="count" class="tag"></span></div>
+<div class="stats" id="statistics" hidden></div>
+<p class="muted" id="statNote"></p>
+<p class="muted">אין כאן מחירון לוי יצחק או מחיר עסקה. אותו קישור נספר פעם אחת; מודעות שונות של אותו רכב עדיין עשויות להיספר בנפרד.</p>
+</section>
+<div class="cards" id="cards"><div class="empty">טוען מודעות…</div></div>
+<p class="muted">לא נאספים כאן טלפונים או פרטי מוכרים. תמונות ומלל מלא אינם נאספים אוטומטית בשלב הזה. מידע ישן זמין רק אם נותר מקור שניתן למצוא.</p>
+</main>
+<script>
+'use strict';
+const el=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>v==null?'לא צוין':Number(v).toLocaleString('he-IL');
+const date=v=>v?new Date(v.length===10?v+'T12:00:00':v).toLocaleDateString('he-IL'):'לא ידוע';
+const money=v=>v==null?'לא צוין':num(v)+' ₪';
+const fieldNames={manufacturer:'יצרן',model:'דגם',trim:'רמת גימור',year:'שנת ייצור',price:'מחיר פרסום',kilometers:'ק״מ',hand:'יד',publishedAt:'תאריך פרסום'};
+let busy=false,configured=false,activeQuery=null;
+function note(text,error=false){el('message').textContent=text;el('message').className=error?'error':'';}
+function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>b.disabled=value);el('collect').disabled=value||!configured;}
+function query(){const q=Object.fromEntries(new FormData(el('filters')));q.year=Number(q.year);return q;}
+async function api(url,data){
+ const res=await fetch(url,{credentials:'same-origin',...(data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{})});
+ if(res.status===401){location.href='/login.html';throw new Error('יש להתחבר למערכת');}
+ if(res.status===403)throw new Error('מאגר המודעות זמין לבעלים בלבד');
+ const out=await res.json();if(!res.ok)throw new Error(out.error||'הפעולה נכשלה');return out;
+}
+function render(data){
+ configured=data.searchConfigured;activeQuery=data.query;
+ el('connection').textContent=configured?'חיבור החיפוש מוגדר. כל לחיצה מפעילה חיפוש בתשלום לפי השירות: עד 10 חיפושים ב־24 שעות, ללא איסוף ברקע.':'חיפוש יד2 מתוך המסך אינו מחובר. פיילוט KEYZ מופעל בנפרד, בלי שירות AI בתשלום; המודעות שנשמרו מוצגות כאן.';
+ el('count').textContent=num(data.listings.length)+' מודעות ייחודיות';
+ el('resultTitle').textContent=data.query?[data.query.manufacturer,data.query.model,data.query.year,data.query.trim].filter(Boolean).join(' · '):'כל המודעות שנשמרו';
+ const s=data.statistics;
+ el('statistics').hidden=!s;
+ if(s)el('statistics').innerHTML='<div class="stat"><b>'+money(s.average)+'</b><span>ממוצע המדגם בלבד</span></div><div class="stat"><b>'+money(s.median)+'</b><span>חציון המדגם</span></div><div class="stat"><b>'+s.count+'</b><span>מודעות עם מחיר</span></div>';
+ el('statNote').textContent=(s?(s.smallSample?'מדגם קטן מדי לאומדן שוק אמין. ':'מחושב מהמודעות שנאספו, לא מכל השוק. ')+(s.mixedTrims?'החיפוש כולל רמות גימור שונות. ':''):'בחר יצרן, דגם ושנה כדי לחשב מדגם תואם. ')+(data.limited?'מוצגות לכל היותר 1,000 מודעות אחרונות. ':'');
+ el('cards').innerHTML=data.listings.length?data.listings.map(r=>'<article class="card"><div class="row"><h3>'+esc([r.manufacturer,r.model,r.year].join(' '))+'</h3><span class="tag">'+(r.verifiedPlate?'שויך לרכב '+esc(r.verifiedPlate):'ללא מספר רישוי מאומת')+'</span></div><p class="muted">'+esc(r.trim)+' · '+(r.method==='direct_public'?'KEYZ · נקרא ישירות מדף ציבורי':r.method==='agent_pilot'?'יד2 · פיילוט מתוך תוצאות חיפוש':'יד2 · נמצא בחיפוש — הנתונים טעונים בדיקה')+'</p><div class="metrics"><div><b>'+money(r.price)+'</b><small>מחיר פרסום שנמצא</small></div><div><b>'+num(r.kilometers)+'</b><small>ק״מ מוצהר במודעה</small></div><div><b>'+num(r.hand)+'</b><small>יד</small></div></div><div class="dates">נאסף לראשונה: '+date(r.firstSeenAt)+' · נצפה שוב: '+date(r.lastSeenAt)+'<br>תאריך פרסום במקור: '+date(r.publishedAt)+'</div><a href="'+esc(r.sourceUrl)+'" target="_blank" rel="noopener noreferrer">פתיחת המודעה במקור ↗</a><details><summary>מאיפה הגיע כל נתון?</summary>'+r.evidence.map(e=>'<p><small>'+esc(e.fields.map(f=>fieldNames[f]).join(' · '))+'</small></p><blockquote>'+esc(e.excerpt)+'</blockquote><a href="'+esc(e.url)+'" target="_blank" rel="noopener noreferrer">אסמכתא במקור ↗</a>').join('')+'</details><details data-versions="'+r.id+'"><summary>'+r.versions+' גרסאות שנשמרו</summary><div class="versions"></div></details>'+(r.verifiedPlate?'<p><a href="/vehicle-history?plate='+esc(r.verifiedPlate)+'">פתיחת תיק הרכב ←</a></p>':'<details><summary>שיוך לרכב אחרי בדיקה</summary><p class="muted">פתח את המקור ואמת את מספר הרישוי והנתונים. התאמה לפי דגם בלבד אינה מספיקה.</p><form class="link-form" data-link="'+r.id+'"><label>מספר רישוי מאומת<input name="plate" inputmode="numeric" pattern="[0-9 -]{7,12}" maxlength="12" required></label><label>היכן אומת המספר?<textarea name="identityNote" rows="2" minlength="8" maxlength="500" placeholder="למשל: מספר הרישוי נראה בבירור בתמונת המודעה" required></textarea></label><label><input name="confirmed" type="checkbox" required> בדקתי את מספר הרכב ואת הנתונים שבמקור</label><button>שמירת שיוך לתיק הרכב</button></form></details>')+'</article>').join(''):'<div class="empty">אין עדיין מודעות שמורות לחיפוש הזה. אפשר לאסוף חדשות לאחר חיבור שירות החיפוש.</div>';
+}
+async function load(q){
+ if(busy)return;setBusy(true);
+ try{render(await api('/api/vehicle-listings'+(q?'?'+new URLSearchParams(q):'')));}
+ catch(e){note(e.message,true);}finally{setBusy(false);}
+}
+el('filters').addEventListener('submit',e=>{e.preventDefault();load(query());});
+el('all').onclick=()=>load(null);
+el('collect').onclick=async()=>{
+ if(busy||!el('filters').reportValidity())return;
+ const q=query();setBusy(true);note('מחפש מודעות ואסמכתאות. הפעולה עשויה להימשך כדקה…');
+ try{const data=await api('/api/vehicle-listings/collect',q);render(data);note('נמצאו '+data.found+' מודעות עם אסמכתאות. נשמרו '+data.created+' מודעות או גרסאות חדשות.');}
+ catch(e){note(e.message,true);}finally{setBusy(false);}
+};
+el('cards').addEventListener('submit',async e=>{
+ const form=e.target.closest('form[data-link]');if(!form)return;e.preventDefault();if(busy)return;setBusy(true);
+ try{
+  const values=Object.fromEntries(new FormData(form));values.confirmed=values.confirmed==='on';
+  const result=await api('/api/vehicle-listings/'+form.dataset.link+'/link',values);
+  render(await api('/api/vehicle-listings'+(activeQuery?'?'+new URLSearchParams(activeQuery):'')));
+  note('המודעה שויכה לתיק רכב '+result.plate);
+ }catch(error){note(error.message,true);}finally{setBusy(false);}
+});
+el('cards').addEventListener('toggle',async e=>{
+ const detail=e.target;if(!detail.matches('details[data-versions]')||!detail.open||detail.dataset.loaded)return;
+ detail.dataset.loaded='pending';const box=detail.querySelector('.versions');box.textContent='טוען גרסאות…';
+ try{const data=await api('/api/vehicle-listings/'+detail.dataset.versions+'/versions');box.innerHTML=data.versions.map(v=>'<div class="version">'+date(v.firstSeenAt)+' · '+money(v.price)+' · '+num(v.kilometers)+' ק״מ</div>').join('');detail.dataset.loaded='yes';}
+ catch(error){box.textContent=error.message;delete detail.dataset.loaded;}
+},true);
+load(null);
+</script>
+</body>
+</html>

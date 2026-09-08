@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>תיק היסטוריית רכב | ניו קאר</title>
+<style>
+:root{--ink:#16304a;--muted:#64778b;--line:#dce5ed;--blue:#1765d1;--bg:#f4f7fb}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,sans-serif;line-height:1.6}header{background:#102b45;color:white;padding:20px max(20px,calc((100% - 1100px)/2));display:flex;align-items:center;justify-content:space-between;gap:16px}header a{color:#dbe9ff;text-decoration:none}header strong{font-size:21px}main{max-width:1100px;margin:32px auto;padding:0 20px}h1{font-size:30px;margin:0}h2{font-size:20px;margin:0 0 14px}p{margin:8px 0}.muted{color:var(--muted)}.panel{background:white;border:1px solid var(--line);border-radius:18px;padding:24px;margin:20px 0;box-shadow:0 6px 24px #16304a04}.search{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.search label{flex:1;min-width:200px}label{display:block;font-size:14px;font-weight:600}input,select,textarea{font:inherit;color:var(--ink);border:1px solid #becddd;border-radius:9px;padding:10px 12px;width:100%;background:white}input:focus,textarea:focus,select:focus{outline:2px solid #8cb9f6;outline-offset:1px}#plate{direction:ltr;text-align:center;font-size:23px;letter-spacing:3px}button,.button{font:inherit;border:0;border-radius:9px;background:var(--blue);color:white;padding:11px 18px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}button.secondary{background:#edf3fb;color:var(--ink)}button:disabled{opacity:.55;cursor:wait}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.stat{padding:16px;background:#f4f8fd;border-radius:12px}.stat b{font-size:25px;display:block}.stat span{font-size:13px;color:var(--muted)}.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.tag{font-size:12px;background:#eaf2fe;color:#235b9c;border-radius:20px;padding:4px 10px}.note{background:#fff7e7;border:1px solid #efd29a;border-radius:12px;padding:14px;margin:12px 0}.error{background:#fff0f0;color:#922b2b}.event{border:1px solid var(--line);border-right:4px solid #9fc3f4;border-radius:12px;padding:18px;margin:14px 0}.event h3{margin:0;font-size:16px}.metrics{display:flex;gap:28px;flex-wrap:wrap;margin:14px 0}.metrics strong{font-size:24px;display:block}.metrics small{color:var(--muted)}.description{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;padding:12px;border-radius:8px}.images{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.images img{width:110px;height:82px;object-fit:cover;border-radius:8px}a{color:var(--blue)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}details summary{cursor:pointer;font-weight:600}details[open] summary{margin-bottom:16px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.empty{padding:24px;text-align:center;color:var(--muted)}#message:empty{display:none}#message{position:sticky;top:12px;z-index:5;padding:14px 18px;border-radius:12px;background:#e5f2e9}small{font-weight:normal}.date{font-size:13px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:650px){main{margin-top:22px;padding:0 12px}.panel{padding:18px}.grid{grid-template-columns:1fr}.stats{gap:7px}.stat{padding:10px}.stat b{font-size:21px}h1{font-size:25px}.search button{width:100%}header{padding:15px}.metrics{gap:20px}}
+</style>
+</head>
+<body>
+<header><strong>NEW CAR · היסטוריית רכב</strong><a href="/car-reception.html">חזרה למערכת ←</a></header>
+<main>
+<h1>לכל רכב יש סיפור. כאן שומרים אותו.</h1>
+<p class="muted">מודעות, מחירים ודיווחי ק״מ — לפי מספר רישוי, גם לרכבים מלפני 2017.</p>
+<p><a class="button" href="/vehicle-listings">מאגר מודעות מהאינטרנט ←</a></p>
+<div id="message" role="status" aria-live="polite"></div>
+<section class="panel"><form id="searchForm" class="search"><label>מספר רכב<input id="plate" inputmode="numeric" placeholder="12-345-67" maxlength="12" required></label><button id="loadBtn">פתיחת תיק רכב</button></form><p class="muted" id="globalStatus">טוען את מצב הארכיון…</p></section>
+<div id="file" hidden>
+<section class="panel"><div class="row"><h2 id="fileTitle"></h2><span class="tag">ארכיון מצטבר</span></div><div class="stats"><div class="stat"><b id="eventCount">0</b><span>רשומות וגרסאות</span></div><div class="stat"><b id="imageCount">0</b><span>תמונות שנשמרו</span></div><div class="stat"><b id="candidateCount">0</b><span>מועמדים לבדיקה</span></div></div><p class="muted">ההיסטוריה מבוססת על תיעוד שנמצא ונשמר. היעדר רשומות אינו מעיד על היעדר עבר לרכב.</p></section>
+<section class="panel"><div class="row"><h2>איתור מודעות נוספות</h2><button type="button" id="discoverBtn">חיפוש מודעות ברשת</button></div><p id="searchStatus" class="muted"></p><p class="muted">החיפוש מחפש מספר רכב מפורש בתוצאות יד2 הזמינות למנוע החיפוש. מספר שמופיע רק בתמונה, מודעה שנמחקה או מידע שלא נשמר בחיפוש עשויים שלא להימצא.</p><div id="candidates"></div></section>
+<section class="panel"><div class="row"><h2>ציר הזמן</h2><button type="button" class="secondary" id="exportBtn">ייצוא התיק</button></div><div id="warnings"></div><div id="timeline"></div></section>
+<section class="panel"><details><summary>הוספת מודעה או מסמך שכבר ברשותך</summary><p class="muted">מיועד לתיעוד שלך או לתוכן שיש לך הרשאה לשמור. אותה כתובת או אותו מזהה ישמרו גרסאות של אותו פרסום.</p><form id="addForm" class="grid">
+<label>סוג התיעוד<select name="source"><option value="manual_listing">מודעת רכב</option><option value="document">מסמך / בדיקה</option><option value="feed">נתונים מספק</option></select></label>
+<label>שם המקור<input name="sourceLabel" placeholder="למשל: מודעת יד2 / דוח בדיקה" maxlength="120" required></label>
+<label class="full">קישור למודעה<input name="sourceUrl" type="url" dir="ltr" placeholder="https://…"></label>
+<label class="full">מזהה תיעוד קבוע, אם אין קישור<input name="sourceId" maxlength="200" placeholder="למשל: מספר דוח בדיקה"></label>
+<label>ק״מ שצוין בתיעוד<input name="kilometers" type="number" min="0" max="5000000"></label><label>מחיר פרסום בש״ח<input name="price" type="number" min="1" max="100000000"></label>
+<label>תאריך שמופיע במקור<input name="evidenceDate" type="date"><small class="muted">כשלא ידוע, משאירים ריק.</small></label>
+<label>משמעות התאריך<select name="dateKind"><option value="published">פרסום המודעה</option><option value="updated">עדכון המודעה</option><option value="test">טסט</option><option value="document">מסמך</option></select></label>
+<label>מקור הק״מ<select name="mileageKind"><option value="declared">הצהרה במודעה / דיווח</option><option value="test">מופיע בתיעוד טסט</option></select></label><label>שנת ייצור<input name="year" type="number" min="1900" max="2100"></label>
+<label>יצרן<input name="manufacturer" maxlength="200"></label><label>דגם<input name="model" maxlength="200"></label>
+<label class="full">מלל / הערות מתוך התיעוד<textarea name="description" rows="4" maxlength="20000"></textarea></label>
+<div class="full"><button>שמירת תיעוד</button><p class="muted">תמונות ניתן לצרף לרשומה אחרי השמירה. בדוק שמספר הרכב במקור תואם לתיק הנוכחי.</p></div>
+</form></details></section>
+<section class="panel"><details><summary>ייבוא רשומות מארכיון או ספק נתונים</summary><p class="muted">ייבוא קובץ JSON שהופק לפי מבנה הייבוא. עד 100 רשומות ועד 90KB בכל קובץ. הייבוא מיועד לתכנים שברשותך ובהרשאת שימוש.</p><input id="importFile" type="file" accept=".json,application/json"><div class="actions"><button type="button" id="importBtn">ייבוא לארכיון</button></div></details></section>
+</div>
+</main>
+<script>
+'use strict';
+const el=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>v==null?'לא צוין':Number(v).toLocaleString('he-IL');
+const date=v=>v?new Date(v.length===10?v+'T12:00:00':v).toLocaleDateString('he-IL'):'לא ידוע';
+const sourceNames={government:'משרד התחבורה',inventory:'המלאי שלך',web_reviewed:'מודעה שנמצאה בחיפוש',manual_listing:'מודעה',document:'מסמך',feed:'ספק נתונים'};
+const dateNames={published:'פרסום',updated:'עדכון מודעה',test:'טסט',document:'תאריך המסמך',observed:'נצפה במערכת',unknown:'תאריך המקור לא ידוע'};
+let currentPlate='',currentData=null,generation=0,loading=false;
+async function refreshSummary(){const s=await api('/api/vehicle-archive/status');el('globalStatus').textContent='בארכיון: '+num(s.vehicles)+' רכבים · '+num(s.observations)+' רשומות. תיעוד מהמלאי שלך מצטרף אוטומטית.';}
+function message(s,error=false){el('message').textContent=s;el('message').style.background=error?'#fff0f0':'#e5f2e9';}
+async function api(url,options={}){
+  const res=await fetch(url,{credentials:'same-origin',...options});
+  if(res.status===401){location.href='/login.html';throw new Error('יש להתחבר למערכת');}
+  if(res.status===403)throw new Error('תיקי ההיסטוריה זמינים כרגע לבעלים בלבד');
+  const data=await res.json();if(!res.ok)throw new Error(data.error||'הפעולה נכשלה');return data;
+}
+const post=(url,data)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+function safeLink(url){try{const u=new URL(url);return u.protocol==='https:'?esc(u.href):'';}catch{return '';}}
+function metrics(r){return '<div class="metrics"><div><strong>'+num(r.kilometers)+'</strong><small>ק״מ · '+(r.mileageKind==='test'?'לפי תיעוד טסט':'דיווח / מודעה')+'</small></div><div><strong>'+num(r.price)+(r.price==null?'':' ₪')+'</strong><small>מחיר פרסום</small></div></div>';}
+function sourceLink(r){const link=safeLink(r.sourceUrl);return link?'<a href="'+link+'" target="_blank" rel="noopener noreferrer">פתיחת המקור ↗</a>':'';}
+function render(data){
+ currentData=data;el('file').hidden=false;el('fileTitle').textContent='תיק רכב '+data.plate;
+ el('eventCount').textContent=data.records.length;el('imageCount').textContent=data.records.reduce((n,r)=>n+r.images.length,0);el('candidateCount').textContent=data.candidates.length;
+ el('discoverBtn').disabled=!data.searchConfigured;
+ el('searchStatus').textContent=!data.searchConfigured?'חיפוש אוטומטי ממתין לחיבור שירות החיפוש בשרת. הארכיון ושמירת הנתונים כבר זמינים.':data.lastSearch?'חיפוש אחרון: '+date(data.lastSearch.startedAt)+' · '+({completed:'הושלם',failed:'נכשל',running:'מתבצע',interrupted:'הופסק'}[data.lastSearch.status]||data.lastSearch.status):'טרם בוצע חיפוש לרכב הזה. החיפוש עשוי להימשך עד כדקה.';
+ el('warnings').innerHTML=data.warnings.map(w=>'<div class="note">ק״מ קודם: '+num(w.from)+' · ק״מ בדיווח מאוחר יותר: '+num(w.to)+'<br>'+esc(w.message)+'</div>').join('');
+ const rows=[...data.records].sort((a,b)=>(b.evidenceDate||b.firstSeenAt).localeCompare(a.evidenceDate||a.firstSeenAt)||b.id-a.id);
+ el('timeline').innerHTML=rows.length?rows.map(r=>'<article class="event"><div class="row"><h3>'+esc(r.sourceLabel||sourceNames[r.source])+'</h3><span class="tag">'+esc(sourceNames[r.source])+'</span></div><div class="date">'+esc(dateNames[r.dateKind])+(r.evidenceDate?': '+date(r.evidenceDate):'')+' · נשמר בארכיון: '+date(r.firstSeenAt)+'</div>'+metrics(r)+(r.description?'<details><summary>מלל ותיעוד</summary><div class="description">'+esc(r.description)+'</div></details>':'')+'<div class="images">'+r.images.map(id=>'<a href="/api/vehicle-archive/images/'+id+'" target="_blank" rel="noopener"><img loading="lazy" src="/api/vehicle-archive/images/'+id+'" alt="תמונה מצורפת לתיעוד"></a>').join('')+'</div><div class="row">'+sourceLink(r)+'<label>צירוף תמונה<input type="file" accept="image/jpeg,image/png,image/webp" data-event="'+r.id+'"></label></div></article>').join(''):'<div class="empty">עדיין אין תיעוד שמור לרכב הזה.<br>אפשר לחפש מודעות או להוסיף תיעוד קיים. גם רכב ישן יכול להתחיל לצבור כאן היסטוריה.</div>';
+ el('candidates').innerHTML=data.candidates.map(c=>'<article class="event"><div class="row"><h3>מודעה שממתינה לבדיקתך</h3><span class="tag">לא נכללת בהיסטוריה</span></div>'+metrics(c)+'<p class="description">'+esc(c.description)+'</p>'+sourceLink(c)+'<p class="muted">יש לבדוק במקור את מספר הרכב והק״מ. תאריך שמופיע בתוצאת החיפוש: '+(c.evidenceDate?date(c.evidenceDate)+' ('+esc(dateNames[c.dateKind])+')':'לא ידוע')+'.</p><div class="actions"><button data-review="confirm" data-id="'+c.id+'">בדקתי — זה הרכב והנתונים נכונים</button><button class="secondary" data-review="reject" data-id="'+c.id+'">לא מתאים</button></div></article>').join('');
+ if(data.limited)el('timeline').insertAdjacentHTML('afterbegin','<div class="note">מוצגות 1,000 הרשומות האחרונות.</div>');
+}
+async function load(plate){
+ const token=++generation;loading=true;el('loadBtn').disabled=true;
+ try{const data=await api('/api/vehicle-archive/'+encodeURIComponent(plate));if(token!==generation)return;currentPlate=data.plate;el('plate').value=data.plate;history.replaceState(null,'','?plate='+data.plate);render(data);await refreshSummary();}
+ catch(e){if(token===generation)message(e.message,true);}
+ finally{if(token===generation){loading=false;el('loadBtn').disabled=false;}}
+}
+el('searchForm').addEventListener('submit',e=>{e.preventDefault();message('');load(el('plate').value.replace(/[\s-]/g,''));});
+el('discoverBtn').addEventListener('click',async()=>{
+ const plate=currentPlate,btn=el('discoverBtn');btn.disabled=true;btn.textContent='מחפש מודעות…';message('');
+ try{const data=await post('/api/vehicle-archive/'+plate+'/search',{});if(currentPlate===plate){await load(plate);message(data.count?'נמצאו '+data.count+' מועמדים לבדיקה.':'לא נמצאה מודעה עם מספר רכב מפורש בתוצאות הזמינות. ייתכן שיש מודעות שלא נגישות לחיפוש.');}}
+ catch(e){message(e.message,true);}finally{btn.textContent='חיפוש מודעות ברשת';btn.disabled=!currentData?.searchConfigured;}
+});
+el('addForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(loading)return;const plate=currentPlate;const data=Object.fromEntries(new FormData(e.target));data.plate=plate;
+ if(!data.evidenceDate)data.dateKind='unknown';const btn=e.target.querySelector('button');btn.disabled=true;
+ try{const result=await post('/api/vehicle-archive/import',{records:[data]});if(currentPlate===plate){e.target.reset();await load(plate);message(result.created?'התיעוד נשמר בארכיון.':'התיעוד כבר קיים; מועד הצפייה עודכן.');}}catch(err){message(err.message,true);}finally{btn.disabled=false;}
+});
+el('candidates').addEventListener('click',async e=>{
+ const btn=e.target.closest('[data-review]');if(!btn)return;const plate=currentPlate;btn.disabled=true;
+ try{await post('/api/vehicle-archive/candidates/'+btn.dataset.id+'/review',{action:btn.dataset.review});if(currentPlate===plate)await load(plate);}catch(err){message(err.message,true);btn.disabled=false;}
+});
+el('timeline').addEventListener('change',async e=>{
+ const input=e.target.closest('[data-event]');if(!input?.files[0])return;const plate=currentPlate;input.disabled=true;
+ const form=new FormData();form.append('image',input.files[0]);
+ try{await api('/api/vehicle-archive/events/'+input.dataset.event+'/images',{method:'POST',body:form});if(currentPlate===plate)await load(plate);message('התמונה נשמרה.');}catch(err){message(err.message,true);input.disabled=false;}
+});
+el('importBtn').addEventListener('click',async()=>{
+ const file=el('importFile').files[0];if(!file)return message('יש לבחור קובץ JSON',true);if(file.size>90000)return message('הקובץ גדול מדי. יש לפצל לקבצים של עד 90KB.',true);
+ const plate=currentPlate,btn=el('importBtn');btn.disabled=true;
+ try{const data=JSON.parse(await file.text());const result=await post('/api/vehicle-archive/import',{records:Array.isArray(data)?data:data.records});if(currentPlate===plate)await load(plate);message('נוספו '+result.created+' רשומות; '+result.unchanged+' כבר היו שמורות.');}catch(err){message(err.message,true);}finally{btn.disabled=false;}
+});
+el('exportBtn').addEventListener('click',()=>{
+ if(!currentData)return;const url=URL.createObjectURL(new Blob([JSON.stringify({exportedAt:new Date().toISOString(),...currentData},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='vehicle-history-'+currentPlate+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+(async()=>{try{await refreshSummary();const plate=new URLSearchParams(location.search).get('plate');if(plate)await load(plate);}catch(e){el('globalStatus').textContent=e.message;}})();
+</script>
+</body>
+</html>

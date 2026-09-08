@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NewCar · מילוי מורשה</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+<header><span>NEWCAR / INFOCAR</span><h1>הפרטים שלך. בלחיצה.</h1></header>
+<main>
+<p id="context">בודק את הדף הפתוח…</p>
+<section class="card"><h2>פרטי המורשה</h2><p id="summary">אין עדיין פרטים שמורים.</p><button id="fill" disabled>מילוי 4 השדות בחלונית המורשה</button><p class="small">רק כשהחלונית פתוחה ב־Infocar. לא משנה מספר רכב או פרטי בעלים, לא מסמן הצהרות ולא לוחץ „מאשר/ת”.</p></section>
+<section class="card"><button id="import" class="secondary" disabled>טעינת הפרטים מ־NewCar</button><p class="small">פעם אחת: פתח ב־Chrome את NewCar, התחבר כבעלים ולחץ כאן. אם החיבור אינו זמין, ניתן למלא ידנית בהגדרות.</p>
+<details id="settings"><summary>בדיקה ושמירת הפרטים</summary>
+<p id="importedName" class="small"></p>
+<form id="profile" autocomplete="off">
+<div class="grid"><label>שם פרטי<input name="firstName" maxlength="80" required></label><label>שם משפחה<input name="lastName" maxlength="80" required></label></div>
+<label>תעודת הזהות שלך<input name="taxId" inputmode="numeric" dir="ltr" maxlength="9" pattern="[0-9]{9}" required></label>
+<label>הכתובת שלך<input name="address" maxlength="300" required></label>
+<label class="check"><input type="checkbox" id="reviewed" required> בדקתי שהשם הפרטי, שם המשפחה ושאר הפרטים נכונים.</label>
+<label class="check"><input type="checkbox" id="remember" checked> לזכור גם אחרי סגירת Chrome במחשב הזה</label>
+<p class="small">המידע נשמר בתוסף, ללא סנכרון לענן. השמירה הקבועה אינה כספת מוצפנת; אין להשתמש בה בפרופיל Chrome משותף. בלי הסימון, המידע נשמר רק עד סגירת הדפדפן.</p>
+<button type="submit">שמירת הפרטים לשימוש בתוסף</button>
+</form></details><button id="forget" class="link">מחיקת הפרטים מהתוסף</button></section>
+<p id="status" role="status" aria-live="polite"></p>
+<footer>כלי פרטי של NewCar, אינו מטעם Infocar. מילוי מורשה אינו אישור לפרטי החשבונית.</footer>
+</main><script src="profile.js"></script><script src="fill-authorized.js"></script><script src="popup.js"></script></body></html>

@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "NewCar — מילוי מורשה Infocar",
+  "version": "1.0.0",
+  "minimum_chrome_version": "120",
+  "description": "מילוי ארבעת פרטי המורשה בלבד, בלחיצה ובחלונית הגלויה. ללא אישור, הזמנה או תשלום.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "action": {"default_title": "NewCar · פרטי מורשה", "default_popup": "popup.html"},
+  "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'"}
+}

@@ -1,0 +1,40 @@
+{
+  "source": "יד2 — מדגם אמיתי שנבדק דרך כלי חיפוש האינטרנט, לא נתוני הדגמה",
+  "reviewedAt": "2026-09-07T08:31:59Z",
+  "availability": "לא אומתה זמינות נוכחית מול המוכר. התוכן התקבל ממקור חיפוש שעשוי להיות שמור במטמון.",
+  "listings": [
+    {
+      "sourceUrl": "https://www.yad2.co.il/vehicles/item/5haliyzv",
+      "manufacturer": "טויוטה",
+      "model": "קורולה",
+      "year": 2022,
+      "trim": "Sun",
+      "price": 78800,
+      "kilometers": 142000,
+      "hand": 1,
+      "publishedAt": null,
+      "evidence": [
+        {"url":"https://www.yad2.co.il/vehicles/item/5haliyzv","excerpt":"טויוטה קורולה\nSun היברידי אוט׳ 1.8 (98 כ״ס)\nשנה\n2022","fields":["manufacturer","model","trim","year"]},
+        {"url":"https://www.yad2.co.il/vehicles/item/5haliyzv","excerpt":"ק״מ\n142,000\nיד\n1","fields":["kilometers","hand"]},
+        {"url":"https://www.yad2.co.il/vehicles/cars?manufacturer=19&model=10226&subModel=104262&year=2022-2022","excerpt":"78,800 ₪","fields":["price"]}
+      ]
+    },
+    {
+      "sourceUrl": "https://www.yad2.co.il/vehicles/item/53xzx42o",
+      "manufacturer": "טויוטה",
+      "model": "קורולה",
+      "year": 2022,
+      "trim": "Sun",
+      "price": 84999,
+      "kilometers": 122613,
+      "hand": 2,
+      "publishedAt": null,
+      "evidence": [
+        {"url":"https://www.yad2.co.il/vehicles/item/53xzx42o","excerpt":"טויוטה קורולה\nSun היברידי אוט׳ 1.8 (98 כ״ס)\nשנה\n2022","fields":["manufacturer","model","trim","year"]},
+        {"url":"https://www.yad2.co.il/vehicles/item/53xzx42o","excerpt":"ק״מ\n122,613","fields":["kilometers"]},
+        {"url":"https://www.yad2.co.il/vehicles/item/53xzx42o","excerpt":"יד\n2","fields":["hand"]},
+        {"url":"https://www.yad2.co.il/vehicles/cars?manufacturer=19&model=10226&subModel=104262&year=2022-2022","excerpt":"84,999 ₪","fields":["price"]}
+      ]
+    }
+  ]
+}
