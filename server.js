@@ -160,7 +160,8 @@ app.get('/api/slika/pending', (req, res) => {
         ownerDate: pend ? pend.ownerDate : '',
         authorized: pend && pend.authorized ? 1 : 0,
         firstName: prof.firstName || '', lastName: prof.lastName || '',
-        idNumber: prof.idNumber || '', address: prof.address || ''
+        idNumber: prof.idNumber || '', address: prof.address || '',
+        phone: prof.phone || '', email: prof.email || ''
       });
     });
   });
@@ -438,6 +439,12 @@ db.serialize(() => {
     if (err && !String(err.message).includes('duplicate column')) console.error('currentKmDate:', err.message);
   });
   // רכב שנקנה אך טרם הגיע למגרש. ברירת מחדל 1 - כל הרכבים הקיימים נחשבים שהגיעו.
+  db.run('ALTER TABLE cars ADD COLUMN govData TEXT', (err) => {
+    if (err && !String(err.message).includes('duplicate column')) console.error('govData:', err.message);
+  });
+  db.run('ALTER TABLE cars ADD COLUMN govUpdatedAt TEXT', (err) => {
+    if (err && !String(err.message).includes('duplicate column')) console.error('govUpdatedAt:', err.message);
+  });
   db.run('ALTER TABLE cars ADD COLUMN arrived INTEGER DEFAULT 1', (err) => {
     if (err && !String(err.message).includes('duplicate column')) console.error('arrived:', err.message);
   });
@@ -1196,6 +1203,32 @@ app.get('/api/national-sync/health', (req, res) => {
   });
 });
 
+// שולף מחדש ממשרד התחבורה ושומר לרכב, כדי שהנתונים יהיו זמינים
+// בכרטיס בלי לחזור לבדיקה בכל פעם.
+app.post('/api/cars/:id/gov-refresh', (req, res) => {
+  const id = Number(req.params.id);
+  db.get('SELECT vin FROM cars WHERE id = ?', [id], async (err, car) => {
+    if (err) { res.status(500).json({ error: err.message }); return; }
+    if (!car || !car.vin) { res.status(404).json({ error: 'רכב לא נמצא' }); return; }
+    try {
+      const data = await fetchFromGovApi(car.vin);
+      if (!data) { res.status(404).json({ error: 'הרכב לא נמצא במאגר' }); return; }
+      const now = new Date().toISOString();
+      db.run('UPDATE cars SET govData = ?, govUpdatedAt = ? WHERE id = ?',
+        [JSON.stringify(data), now, id], (e2) => {
+          if (e2) { res.status(500).json({ error: e2.message }); return; }
+          res.json({ success: true, govData: data, govUpdatedAt: now });
+        });
+    } catch (e) {
+      if (e.govUnavailable) {
+        res.status(503).json({ error: 'מאגר משרד התחבורה אינו זמין כרגע', govUnavailable: true });
+      } else {
+        res.status(500).json({ error: e.message });
+      }
+    }
+  });
+});
+
 // ==================== סליקה (INFOCAR) ====================
 // פרטי המורשה הם אישיים לכל משתמש - ההצהרה באתר וכרטיס האשראי הם על שמו,
 // ולכן כל משתמש שומר את הפרטים של עצמו ולא רואה של אחרים.
@@ -1228,13 +1261,14 @@ app.post('/api/slika/profile', (req, res) => {
   const user = (req.auth && req.auth.user) || '';
   const b = req.body || {};
   db.run(
-    `INSERT INTO slika_profile (username, firstName, lastName, idNumber, address, phone, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO slika_profile (username, firstName, lastName, idNumber, address, phone, email, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(username) DO UPDATE SET
        firstName=excluded.firstName, lastName=excluded.lastName, idNumber=excluded.idNumber,
-       address=excluded.address, phone=excluded.phone, updatedAt=excluded.updatedAt`,
+       address=excluded.address, phone=excluded.phone, email=excluded.email,
+       updatedAt=excluded.updatedAt`,
     [user, String(b.firstName||''), String(b.lastName||''), String(b.idNumber||''),
-     String(b.address||''), String(b.phone||''), new Date().toISOString()],
+     String(b.address||''), String(b.phone||''), String(b.email||''), new Date().toISOString()],
     (err) => {
       if (err) { res.status(500).json({ error: err.message }); return; }
       res.json({ success: true });
@@ -1271,6 +1305,9 @@ app.post('/api/slika/queries', (req, res) => {
 // ---- מילוי אוטומטי של טופס INFOCAR ----
 // הסקריפט רץ בדפדפן של המשתמש, בדף שהוא פתח, וממלא שדות טקסט בלבד.
 // הוא לא מסמן הצהרות, לא נוגע בתשלום ולא שולח את הטופס - אלה נשארים אצל המשתמש.
+db.run('ALTER TABLE slika_profile ADD COLUMN email TEXT', (err) => {
+  if (err && !String(err.message).includes('duplicate column')) console.error('email:', err.message);
+});
 db.run('ALTER TABLE slika_pending ADD COLUMN authorized INTEGER DEFAULT 0', (err) => {
   if (err && !String(err.message).includes('duplicate column')) console.error('authorized:', err.message);
 });
@@ -1659,12 +1696,14 @@ app.post('/api/cars', (req, res) => {
   }
 
   db.run(
-    `INSERT INTO cars (vin, manufacturer, model, year, color, kilometers, currentKm, currentKmDate, engine, handNumber, trimLevel, transmission, condition, price, testValidUntil, notes, arrived, addedDate)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO cars (vin, manufacturer, model, year, color, kilometers, currentKm, currentKmDate, engine, handNumber, trimLevel, transmission, condition, price, testValidUntil, notes, arrived, govData, govUpdatedAt, addedDate)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [vin, manufacturer, model, year, color, kilometers, currentKm || null,
      currentKm ? new Date().toISOString() : null,
      engine, handNumber, trimLevel, transmission, condition, price, testValidUntil, notes,
      req.body.arrived === 0 || req.body.arrived === false ? 0 : 1,
+     req.body.govData || null,
+     req.body.govData ? new Date().toISOString() : null,
      new Date().toLocaleDateString('he-IL')],
     function (err) {
       if (err) {
@@ -1772,7 +1811,7 @@ const UPDATABLE_CAR_FIELDS = [
   'currentKm',
   'vin', 'manufacturer', 'model', 'year', 'color', 'kilometers', 'engine',
   'handNumber', 'trimLevel', 'transmission', 'condition', 'price',
-  'testValidUntil', 'notes', 'sold', 'soldDate', 'arrived'
+  'testValidUntil', 'notes', 'sold', 'soldDate', 'arrived', 'govData'
 ];
 
 app.put('/api/cars/:id', (req, res) => {

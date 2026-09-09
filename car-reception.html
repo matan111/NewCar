@@ -274,6 +274,13 @@
       margin-bottom: 15px;
     }
 
+    .gov-block { background:#f8fafb; border:1px solid #e2e8f0; border-radius:7px; padding:11px 13px; margin-top:6px; }
+    .gov-empty { color:#a0aec0; font-size:13px; font-style:italic; }
+    .gov-title { font-weight:700; color:#4a5568; font-size:13.5px; margin-bottom:8px;
+      display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; }
+    .gov-updated { font-weight:400; font-size:11.5px; color:#a0aec0; }
+    .gov-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:4px 14px; }
+
     .slika-box { background:#f5f9f5; border:1px solid #cfe3d2; border-radius:8px; padding:13px 15px; margin-top:15px; }
     .slika-title { font-weight:700; color:#2f6b3a; margin-bottom:10px; }
     .slika-title small { font-weight:400; color:#7aa383; margin-right:6px; }
@@ -2786,6 +2793,27 @@
           const res = await fetch('__API__');
           if (!res.ok) { alert('לא ניתן לטעון את הפרטים מהמערכת'); return; }
           const d = await res.json();
+
+          // דף התשלום של ספק הסליקה הוא דומיין אחר. מזהים אותו לפי שדות
+          // החשבונית, וממלאים רק אותם. שדות הכרטיס לא נגעים בשום מקרה.
+          const byPlaceholder = (txt) => Array.from(document.querySelectorAll('input'))
+            .find(el => (el.placeholder || '').trim() === txt);
+          const invoiceLast = byPlaceholder('שם משפחה');
+          if (invoiceLast) {
+            const put = (el, v) => {
+              if (!el || !v) return;
+              const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+              setter.call(el, v);
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+            put(invoiceLast, d.lastName);
+            put(byPlaceholder('שם פרטי'), d.firstName);
+            put(byPlaceholder('כתובת דואר אלקטרוני'), d.email);
+            put(byPlaceholder('מספר טלפון'), d.phone);
+            alert('פרטי החשבונית מולאו. פרטי הכרטיס נשארים לך.');
+            return;
+          }
           const set = (el, v) => {
             if (!el || !v) return;
             const proto = window.HTMLInputElement.prototype;
@@ -2882,13 +2910,15 @@
       if (address === null) return;
       const phone = prompt('טלפון:', p.phone || '');
       if (phone === null) return;
+      const email = prompt('מייל (לחשבונית):', p.email || '');
+      if (email === null) return;
 
       const res = await fetch('/api/slika/profile', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, idNumber, address, phone })
+        body: JSON.stringify({ firstName, lastName, idNumber, address, phone, email })
       });
       if (res.ok) {
-        slikaProfile = { firstName, lastName, idNumber, address, phone };
+        slikaProfile = { firstName, lastName, idNumber, address, phone, email };
         showMessage('success', '✓ הפרטים נשמרו — לא תצטרך להקליד אותם שוב');
         renderSlika(plate, data);
       } else showMessage('error', 'שמירה נכשלה');
@@ -3008,6 +3038,8 @@
       document.getElementById('addCheckedCarBtn').addEventListener('click', () => {
         switchToScreen('screen-add');
         document.getElementById('vin').value = plateNumber;
+        // שומרים את נתוני המשרד כדי שיישמרו יחד עם הרכב
+        pendingGovData = data;
         fillVehicleForm(data);
         showMessage('success', '✓ הפרטים הועברו לטופס ההוספה - השלם מחיר וטסט ושמור');
       });
@@ -3264,8 +3296,12 @@
     });
 
     // קורא את כל שדות הטופס לאובייקט אחד - משמש גם בהוספה וגם בעריכה
+    // נתוני משרד התחבורה של הרכב שנבדק, ממתינים לשמירה יחד איתו
+    let pendingGovData = null;
+
     function getCarFormFields() {
       return {
+        govData: pendingGovData ? JSON.stringify(pendingGovData) : undefined,   // רק בהוספה מבדיקה
         arrived: document.getElementById('notArrived').checked ? 0 : 1,
         vin: document.getElementById('vin').value,
         manufacturer: document.getElementById('manufacturer').value,
@@ -3329,6 +3365,7 @@
     document.getElementById('cancelEditBtn').addEventListener('click', () => {
       editingCarId = null;
       carForm.reset();
+      pendingGovData = null;   // לא לרשת נתוני משרד מרכב קודם
       updateFormModeUI();
       switchToScreen('screen-inventory');
     });
@@ -3378,6 +3415,7 @@
 
         editingCarId = null;
         carForm.reset();
+      pendingGovData = null;   // לא לרשת נתוני משרד מרכב קודם
         updateFormModeUI();
         showMessage('success', '✓ הרכב עודכן בהצלחה!');
         renderInventory();
@@ -3415,6 +3453,7 @@
       saveCars();
 
       carForm.reset();
+      pendingGovData = null;   // לא לרשת נתוני משרד מרכב קודם
       showMessage('success', '✓ הרכב נשמר בהצלחה!');
       renderInventory();
       switchToScreen('screen-inventory');
@@ -4784,7 +4823,22 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
         // המחיר מוצג בנפרד ובולט (המספר הכי חשוב לסוחר); שאר הפרטים בשורת משנה שקטה
         const priceText = !isFieldEmpty(car.price) ? `₪${parseInt(car.price).toLocaleString('he-IL')}` : '';
         const metaParts = [];
-        if (!isFieldEmpty(car.handNumber)) metaParts.push(`יד ${escapeHtml(car.handNumber)}`);
+        // סוג השימוש (ליסינג/השכרה/פרטי) חשוב לתמחור, ולכן מוצג כבר בשורה המקופלת
+        const govUsage = (() => {
+          if (!car.govData) return '';
+          try { const g = typeof car.govData === 'string' ? JSON.parse(car.govData) : car.govData;
+                return getConditionLabel(g.condition) || ''; } catch (e) { return ''; }
+        })();
+        if (govUsage) metaParts.push(escapeHtml(govUsage));
+        // כשיש רשומות מהמשרד, מספר היד מחושב מהן ולא נלקח מהשדה השמור -
+        // אחרת אותו רכב מציג שני מספרים שונים בשני מקומות.
+        const govHands = (() => {
+          if (!car.govData) return null;
+          try { const g = typeof car.govData === 'string' ? JSON.parse(car.govData) : car.govData;
+                const n = carGovHandCount(g); return n || null; } catch (e) { return null; }
+        })();
+        if (govHands) metaParts.push(`יד ${govHands}`);
+        else if (!isFieldEmpty(car.handNumber)) metaParts.push(`יד ${escapeHtml(car.handNumber)}`);
         if (!isFieldEmpty(car.currentKm)) {
           metaParts.push(`${parseInt(car.currentKm).toLocaleString('he-IL')} ק״מ`);
         } else if (!isFieldEmpty(car.kilometers)) {
@@ -4818,6 +4872,7 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
             <div class="car-detail"><span class="car-detail-label">צבע:</span> ${escapeHtml(car.color)}</div>
             <div class="car-detail"><span class="car-detail-label">טסט עד:</span> ${escapeHtml(car.testValidUntil)}</div>
             ${car.notes ? `<div class="car-detail" style="grid-column: 1/-1;"><span class="car-detail-label">הערות:</span> ${escapeHtml(car.notes)}</div>` : ''}
+            ${renderCarGovBlock(car)}
             <div class="car-detail car-docs" style="grid-column: 1/-1;" id="docs-${car.id}">
               <div class="car-docs-head">
                 <span class="car-detail-label">📎 מסמכים מצורפים</span>
@@ -4836,6 +4891,7 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
                 <button class="btn btn-print" onclick="printCar(${car.id})">🖨️ הדפס</button>
                 <button class="btn btn-secondary" onclick="refreshLeviPrice(${car.id})" id="leviPriceBtn-${car.id}">💰 עדכן מחירון</button>
                 <button class="btn btn-secondary" onclick="enrichCar(${car.id})" id="enrichBtn-${car.id}">🔄 השלם נתונים</button>
+                <button class="btn btn-secondary" onclick="refreshGovData(${car.id})" id="govBtn-${car.id}">🏛️ עדכן ממשרד התחבורה</button>
                 <button class="btn btn-secondary" onclick="createCarPost(${car.id})">📝 צור פוסט</button>
                 <button class="btn btn-secondary" onclick="openContract(${car.id})">📄 הסכם מכירה</button>
                 ${currentUser.canViewArchive ? `<button class="btn btn-success" onclick="markAsSold(${car.id})">✅ נמכר</button>` : ''}
@@ -4875,6 +4931,71 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
         renderInventory();
         showMessage('success', '✓ ' + desc + ' הועבר למלאי הפעיל');
       } catch (e) { showMessage('error', 'לא ניתן לעדכן: ' + e.message); }
+    }
+
+    function carGovHandCount(g) {
+      const hist = g.ownershipHistory || [];
+      const seen = new Set();
+      let hands = 0;
+      hist.forEach(x => {
+        const key = String(x.baalut_dt) + '|' + x.baalut;
+        if (seen.has(key)) return;
+        seen.add(key);
+        if (!(x.baalut && x.baalut.includes('סוחר'))) hands++;
+      });
+      return hands;
+    }
+
+    function renderCarGovBlock(car) {
+      if (!car.govData) {
+        return '<div class="car-detail gov-empty" style="grid-column: 1/-1;">' +
+          '<span class="car-detail-label">🏛️ נתוני משרד התחבורה:</span> ' +
+          'לא נשמרו — לחץ "עדכן ממשרד התחבורה" למטה</div>';
+      }
+      let g;
+      try { g = typeof car.govData === 'string' ? JSON.parse(car.govData) : car.govData; }
+      catch (e) { return ''; }
+
+      const usage = getConditionLabel(g.condition);
+      const hands = carGovHandCount(g);
+      const when = car.govUpdatedAt
+        ? '<span class="gov-updated">עודכן ' + new Date(car.govUpdatedAt).toLocaleDateString('he-IL') + '</span>'
+        : '';
+
+      const parts = [];
+      if (usage) parts.push('<div class="car-detail"><span class="car-detail-label">מקוריות:</span> ' + escapeHtml(usage) + '</div>');
+      if (hands) parts.push('<div class="car-detail"><span class="car-detail-label">יד (לא כולל סוחרים):</span> ' + hands + '</div>');
+      if (!parts.length) return '';
+
+      return '<div class="car-detail gov-block" style="grid-column: 1/-1;">' +
+        '<div class="gov-title">🏛️ משרד התחבורה' + when + '</div>' +
+        '<div class="gov-grid">' + parts.join('') + '</div>' +
+      '</div>';
+    }
+
+    async function refreshGovData(id) {
+      const btn = document.getElementById('govBtn-' + id);
+      const original = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'מעדכן...'; }
+      try {
+        const res = await fetch(`${API_URL}/cars/${id}/gov-refresh`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          showMessage('error', data.govUnavailable
+            ? 'מאגר משרד התחבורה לא זמין כרגע — נסה מאוחר יותר'
+            : (data.error || 'העדכון נכשל'));
+          return;
+        }
+        const car = cars.find(c => c.id === id);
+        if (car) { car.govData = JSON.stringify(data.govData); car.govUpdatedAt = data.govUpdatedAt; }
+        saveCars();
+        renderInventory();
+        showMessage('success', '✓ הנתונים עודכנו ונשמרו לרכב');
+      } catch (e) {
+        showMessage('error', 'שגיאה: ' + e.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = original; }
+      }
     }
 
     function toggleCarDetails(id) {
