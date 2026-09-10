@@ -502,10 +502,19 @@ function mapBaalutToCondition(baalut) {
 // כשהרכב רשום כרגע על שם "סוחר" (המצב השכיח ביותר לרכב שנמצא במלאי סוחר) אין ל-baalut הנוכחי
 // מיפוי ל"מקוריות" - במקום זה מחפשים בהיסטוריה את הסיווג הראשון (המקורי) שאינו "סוחר",
 // כלומר מה הרכב היה מלכתחילה (למשל רכב ליסינג שנמכר מאז לפרטי) ולא את הסטטוס האחרון שלו
+// דירוג לפי השפעה על השווי: מונית והשכרה הכי משמעותיים, אחריהם ליסינג וחברה.
+const CONDITION_SEVERITY = { taxi: 5, rental: 4, lease: 3, company: 2, private: 1 };
+
+// המקוריות היא הסיווג המשמעותי ביותר שהרכב עבר אי פעם - לא הסטטוס הנוכחי.
 function getConditionFromHistory(historyRecords) {
-  const sortedAsc = [...historyRecords].sort((a, b) => (a.baalut_dt || 0) - (b.baalut_dt || 0));
-  const firstNonDealer = sortedAsc.find(r => r.baalut && !r.baalut.includes('סוחר'));
-  return firstNonDealer ? mapBaalutToCondition(firstNonDealer.baalut) : '';
+  let best = '', bestScore = 0;
+  (historyRecords || []).forEach(r => {
+    if (!r.baalut || r.baalut.includes('סוחר')) return;
+    const c = mapBaalutToCondition(r.baalut);
+    const score = CONDITION_SEVERITY[c] || 0;
+    if (score > bestScore) { bestScore = score; best = c; }
+  });
+  return best;
 }
 
 // מחשב "יד" מתוך היסטוריית העברות הבעלות: סופר שינויי בעלות ייחודיים ומדלג על "סוחר"
@@ -639,8 +648,15 @@ async function fetchFromGovApi(plateNumber) {
   if (historyResult.status === 'fulfilled' && historyResult.value.success && historyResult.value.result.records.length > 0) {
     const historyRecords = historyResult.value.result.records;
     data.handNumber = calculateHandNumber(historyRecords);
-    if (!data.condition) {
-      data.condition = getConditionFromHistory(historyRecords);
+
+    // הסטטוס הנוכחי מתאר איך הרכב רשום היום; המקוריות מתארת מה הוא עבר.
+    // מעדיפים את ההיסטוריה, ומסמנים כשהיא שונה מהמצב הנוכחי.
+    const fromHistory = getConditionFromHistory(historyRecords);
+    const currentCondition = mapBaalutToCondition(vehicle.baalut);
+    if (fromHistory) {
+      data.condition = fromHistory;
+      data.conditionWasChanged = !!(currentCondition && fromHistory !== currentCondition);
+      data.currentCondition = currentCondition;
     }
     data.ownershipHistory = [...historyRecords].sort((a, b) => (a.baalut_dt || 0) - (b.baalut_dt || 0));
   }

@@ -2794,60 +2794,108 @@
           if (!res.ok) { alert('לא ניתן לטעון את הפרטים מהמערכת'); return; }
           const d = await res.json();
 
-          // דף התשלום של ספק הסליקה הוא דומיין אחר. מזהים אותו לפי שדות
-          // החשבונית, וממלאים רק אותם. שדות הכרטיס לא נגעים בשום מקרה.
-          const byPlaceholder = (txt) => Array.from(document.querySelectorAll('input'))
-            .find(el => (el.placeholder || '').trim() === txt);
-          const invoiceLast = byPlaceholder('שם משפחה');
-          if (invoiceLast) {
-            const put = (el, v) => {
-              if (!el || !v) return;
-              const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-              setter.call(el, v);
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-            };
-            put(invoiceLast, d.lastName);
-            put(byPlaceholder('שם פרטי'), d.firstName);
-            put(byPlaceholder('כתובת דואר אלקטרוני'), d.email);
-            put(byPlaceholder('מספר טלפון'), d.phone);
-            alert('פרטי החשבונית מולאו. פרטי הכרטיס נשארים לך.');
-            return;
-          }
-          const set = (el, v) => {
-            if (!el || !v) return;
-            const proto = window.HTMLInputElement.prototype;
-            const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
+          const allInputs = () => {
+            const list = Array.from(document.querySelectorAll('input'));
+            Array.from(document.querySelectorAll('iframe')).forEach(fr => {
+              try {
+                const idoc = fr.contentDocument;
+                if (idoc) list.push.apply(list, Array.from(idoc.querySelectorAll('input')));
+              } catch (e) { /* מקור אחר - אין גישה, וזה תקין */ }
+            });
+            return list;
+          };
+
+          const banner = (title, body, ok) => {
+            const old = document.getElementById('ncFillBanner');
+            if (old) old.remove();
+            const el = document.createElement('div');
+            el.id = 'ncFillBanner';
+            el.setAttribute('style',
+              'position:fixed;top:0;left:0;right:0;z-index:2147483647;' +
+              'background:' + (ok ? '#1e7a3c' : '#a33') + ';color:#fff;' +
+              'font:14px/1.6 Arial,sans-serif;padding:12px 16px;direction:rtl;text-align:right;' +
+              'box-shadow:0 2px 10px rgba(0,0,0,.3)');
+            el.innerHTML = '<b>' + title + '</b><br>' + body +
+              '<span style="float:left;cursor:pointer;font-size:20px;line-height:1">&times;</span>';
+            el.querySelector('span').onclick = () => el.remove();
+            document.body.appendChild(el);
+            setTimeout(() => { const b = document.getElementById('ncFillBanner'); if (b) b.remove(); }, 20000);
+          };
+
+          const put = (el, v) => {
+            if (!el || !v) return false;
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
             setter.call(el, v);
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
           };
-          set(document.getElementById('carNum'), d.plate);
-          set(document.getElementById('tzOfOwner'), d.ownerId);
-          // הטופס שלהם מצפה ל-"DD / MM / YYYY". מקבלים כל צורה סבירה ומנרמלים.
-          const fixDate = (v) => {
-            const digits = String(v || '').replace(/[^0-9]/g, '');
-            if (digits.length === 8) return digits.slice(0,2) + ' / ' + digits.slice(2,4) + ' / ' + digits.slice(4);
-            return v;
-          };
-          set(document.getElementById('ownerDate'), fixDate(d.ownerDate));
-          set(document.getElementById('ShemPrtiMorshe'), d.firstName);
-          set(document.querySelector('[name^="ShemMishpachaMorshe"]'), d.lastName);
-          set(document.getElementById('tzOfMorshe'), d.idNumber);
-          set(document.getElementById('KtovetMorshe'), d.address);
 
-          // ההצהרות מסומנות רק על סמך אישור מפורש שהמשתמש נתן במערכת, לרכב הזה.
-          // התשלום ושליחת הטופס נשארים אצלו.
-          const tick = (id) => {
-            const el = document.getElementById(id);
-            if (el && !el.checked) { el.click(); }
-          };
-          if (d.authorized) {
-            tick('cbTerms'); tick('cbTakanon'); tick('cbAprrovedByMorshe');
-            alert('הטופס מולא וההצהרות סומנו לפי אישורך. נותר להזין אשראי ולשלוח.');
-          } else {
-            alert('השדות מולאו. לא אישרת הרשאה במערכת — סמן את ההצהרות בעצמך.');
+          const findField = (words) => allInputs().find(el => {
+            if (el.type === 'hidden' || el.disabled) return false;
+            const hay = ((el.placeholder || '') + ' ' + (el.name || '') + ' ' +
+                         (el.id || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+            if (/card|cvv|כרטיס|תוקף/i.test(hay)) return false;   // לעולם לא שדות כרטיס
+            return words.every(w => hay.includes(w.toLowerCase()));
+          });
+
+          // ---- ענף א': טופס INFOCAR. מזוהה חד-משמעית לפי שדה מספר הרכב ----
+          const carNumEl = document.getElementById('carNum');
+          if (carNumEl) {
+            const done = [], missing = [];
+            const mark = (ok, name) => (ok ? done : missing).push(name);
+
+            mark(put(carNumEl, d.plate), 'מספר רכב');
+            mark(put(document.getElementById('tzOfOwner'), d.ownerId), 'ת.ז בעלים');
+
+            const fixDate = (v) => {
+              const digits = String(v || '').replace(/[^0-9]/g, '');
+              if (digits.length === 8) return digits.slice(0,2) + ' / ' + digits.slice(2,4) + ' / ' + digits.slice(4);
+              return v;
+            };
+            mark(put(document.getElementById('ownerDate'), fixDate(d.ownerDate)), 'תאריך בעלות');
+            mark(put(document.getElementById('ShemPrtiMorshe'), d.firstName), 'שם פרטי');
+            // שם המשפחה נבחר לפי name: אצלם ה-id שלו כפול ושווה ל-carNum
+            mark(put(document.querySelector('[name^="ShemMishpachaMorshe"]'), d.lastName), 'שם משפחה');
+            mark(put(document.getElementById('tzOfMorshe'), d.idNumber), 'ת.ז מורשה');
+            mark(put(document.getElementById('KtovetMorshe'), d.address), 'כתובת');
+
+            let decl = '';
+            if (d.authorized) {
+              const tick = (id) => { const el = document.getElementById(id); if (el && !el.checked) el.click(); };
+              tick('cbTerms'); tick('cbTakanon'); tick('cbAprrovedByMorshe');
+              decl = ' · ההצהרות סומנו לפי אישורך';
+            } else {
+              decl = ' · לא אישרת הרשאה במערכת, ההצהרות לא סומנו';
+            }
+
+            banner('טופס INFOCAR',
+              'מולאו: ' + (done.join(', ') || 'כלום') +
+              (missing.length ? ' · לא נמצאו: ' + missing.join(', ') : '') + decl,
+              done.length > 0);
+            return;
           }
+
+          // ---- ענף ב': דף התשלום ----
+          const invoiceLast = findField(['שם', 'משפחה']);
+          if (invoiceLast) {
+            const done = [], missing = [];
+            (put(invoiceLast, d.lastName) ? done : missing).push('שם משפחה');
+            (put(findField(['שם', 'פרטי']), d.firstName) ? done : missing).push('שם פרטי');
+            (put(findField(['דואר']) || findField(['mail']), d.email) ? done : missing).push('מייל');
+            (put(findField(['טלפון']) || findField(['phone']), d.phone) ? done : missing).push('טלפון');
+            banner('פרטי חשבונית',
+              'מולאו: ' + (done.join(', ') || 'כלום') +
+              (missing.length ? ' · לא נמצאו: ' + missing.join(', ') : '') +
+              ' · פרטי הכרטיס נשארים לך.', done.length > 0);
+            return;
+          }
+
+          banner('הדף הזה לא מזוהה',
+            'נמצאו ' + allInputs().length + ' שדות. כתובת: ' + location.hostname +
+            ' · צלם ושלח.', false);
+          return;
+
         } catch (e) { alert('שגיאה: ' + e.message); }
       };
       // כרום מועך שורות חדשות כששומרים javascript: כסימנייה, והקוד נשבר.
@@ -2953,7 +3001,8 @@
         ['דגם מנוע', data.engineModel],
         ['גיר', data.transmission ? (data.transmission === 'manual' ? 'ידנית' : 'אוטומטית') : ''],
         ['רמת גימור', data.trimLevel],
-        ['מקוריות (מקורית)', getConditionLabel(data.condition)],
+        ['מקוריות', getConditionLabel(data.condition) +
+          (data.conditionWasChanged ? ' (לשעבר · כיום ' + getConditionLabel(data.currentCondition) + ')' : '')],
         ['יד (לא כולל סוחרים)', data.handNumber],
         ['קילומטר (בטסט האחרון)', data.kilometers ? `${Number(data.kilometers).toLocaleString('he-IL')} ק"מ` : ''],
         ['טסט בתוקף עד', data.testValidUntil],
@@ -4963,7 +5012,10 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
         : '';
 
       const parts = [];
-      if (usage) parts.push('<div class="car-detail"><span class="car-detail-label">מקוריות:</span> ' + escapeHtml(usage) + '</div>');
+      const wasChanged = g.conditionWasChanged;
+      const nowIs = getConditionLabel(g.currentCondition);
+      if (usage) parts.push('<div class="car-detail"><span class="car-detail-label">מקוריות:</span> ' +
+        escapeHtml(usage) + (wasChanged && nowIs ? ' <span style="color:#a0aec0">(לשעבר · כיום ' + escapeHtml(nowIs) + ')</span>' : '') + '</div>');
       if (hands) parts.push('<div class="car-detail"><span class="car-detail-label">יד (לא כולל סוחרים):</span> ' + hands + '</div>');
       if (!parts.length) return '';
 
@@ -5332,8 +5384,11 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
           <div class="print-field-value">${getConditionLabel(car.condition)}</div>
         </div>
         <div class="print-field">
-          <div class="print-field-label">מחיר נדרש</div>
-          <div class="print-field-value">₪${parseInt(car.price).toLocaleString('he-IL')}</div>
+          <div class="print-field-label">מחירון לוי יצחק</div>
+          <div class="print-field-value">${car.leviPrice
+            ? '₪' + Number(car.leviPrice).toLocaleString('he-IL') +
+              (car.leviPriceDate ? ' <span style="font-size:11px;color:#777">(' + escapeHtml(formatLeviPriceDate(car.leviPriceDate, car.leviUpdatedAt)) + ')</span>' : '')
+            : 'טרם עודכן'}</div>
         </div>
         <div class="print-field">
           <div class="print-field-label">טסט עד מתי</div>
