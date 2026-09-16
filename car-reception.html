@@ -281,6 +281,20 @@
     .gov-updated { font-weight:400; font-size:11.5px; color:#a0aec0; }
     .gov-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:4px 14px; }
 
+    .already-owned { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+      background:#e8f5ec; border:1px solid #9ed4b0; border-right:5px solid #38a169;
+      border-radius:8px; padding:12px 15px; margin-bottom:15px; }
+    .already-owned b { color:#22543d; font-size:15.5px; }
+    .already-owned span { color:#4a7a5c; font-size:13.5px; }
+    .already-owned .btn { margin-right:auto; }
+    .already-owned.sold { background:#f7f7f8; border-color:#d8dade; border-right-color:#8b98a8; }
+    .already-owned.sold b { color:#4a5568; }
+    .already-owned.sold span { color:#718096; }
+    .slika-title { cursor:pointer; list-style:none; }
+    .slika-title::-webkit-details-marker { display:none; }
+    .slika-title::before { content:'▶ '; font-size:11px; color:#7aa383; }
+    details[open] > .slika-title::before { content:'▼ '; }
+
     .slika-box { background:#f5f9f5; border:1px solid #cfe3d2; border-radius:8px; padding:13px 15px; margin-top:15px; }
     .slika-title { font-weight:700; color:#2f6b3a; margin-bottom:10px; }
     .slika-title small { font-weight:400; color:#7aa383; margin-right:6px; }
@@ -1778,7 +1792,6 @@
         <small id="checkStatus" style="color: #666; display: block; margin-top: 10px; text-align: center;"></small>
 
         <div id="checkResults" style="display: none; margin-top: 25px;"></div>
-        <div id="infocarHelper" hidden></div>
 
         <div id="searchHistory" class="search-history" style="display: none;">
           <div class="search-history-head">
@@ -1837,6 +1850,8 @@
               <option value="price_desc">מחיר (גבוה לנמוך)</option>
               <option value="year_desc">שנה (חדש לישן)</option>
               <option value="year_asc">שנה (ישן לחדש)</option>
+              <option value="age_desc">ותק במלאי (ותיק לחדש)</option>
+              <option value="age_asc">ותק במלאי (חדש לותיק)</option>
             </select>
           </div>
           <button class="btn btn-secondary" id="clearFiltersBtn">נקה סינון</button>
@@ -2223,6 +2238,42 @@
       return sortCars(filtered);
     }
 
+    // מועד כניסת הרכב למלאי. createdAt מדויק; addedDate הוא גיבוי
+    // בפורמט ישראלי (ד.ח.שששש) ולכן מפורק ידנית.
+    function carAddedTime(car) {
+      if (car.createdAt) {
+        const t = new Date(String(car.createdAt).replace(' ', 'T')).getTime();
+        if (!isNaN(t)) return t;
+      }
+      if (car.addedDate) {
+        const p = String(car.addedDate).split('.');
+        if (p.length === 3) {
+          const t = new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0])).getTime();
+          if (!isNaN(t)) return t;
+        }
+      }
+      return Date.now();   // לא ידוע - נחשב כנכנס עכשיו
+    }
+
+    function carDaysInStock(car) {
+      return Math.max(0, Math.floor((Date.now() - carAddedTime(car)) / 86400000));
+    }
+
+    // ניסוח קצר לשורה המקופלת
+    function carAgeLabel(car) {
+      const d = carDaysInStock(car);
+      if (d === 0) return 'נכנס היום';
+      if (d === 1) return 'יום במלאי';
+      if (d === 2) return 'יומיים במלאי';
+      if (d < 30) return d + ' ימים במלאי';
+      const months = Math.floor(d / 30);
+      if (months === 1) return 'חודש במלאי';
+      if (months === 2) return 'חודשיים במלאי';
+      if (months < 12) return months + ' חודשים במלאי';
+      const years = Math.floor(d / 365);
+      return years === 1 ? 'שנה במלאי' : years + ' שנים במלאי';
+    }
+
     // ממיין רשימת רכבים לפי הבחירה ב"מיין לפי" (ברירת מחדל: יצרן א-ב)
     function sortCars(list) {
       const sorted = [...list];
@@ -2241,6 +2292,13 @@
           break;
         case 'year_asc':
           sorted.sort((a, b) => (Number(a.year) || 0) - (Number(b.year) || 0));
+          break;
+        case 'age_desc':
+          // הותיק ביותר קודם - הרכב שהכי הרבה זמן תקוע
+          sorted.sort((a, b) => carAddedTime(a) - carAddedTime(b));
+          break;
+        case 'age_asc':
+          sorted.sort((a, b) => carAddedTime(b) - carAddedTime(a));
           break;
         case 'manufacturer_asc':
         default:
@@ -2699,8 +2757,8 @@
         : '';
 
       box.innerHTML =
-        '<div class="slika-box">' +
-          '<div class="slika-title">🛡️ סליקה — היסטוריית תביעות ביטוח <small>INFOCAR · 12 ₪</small></div>' +
+        '<details class="slika-box">' +
+          '<summary class="slika-title">🛡️ סליקה — היסטוריית תביעות ביטוח <small>INFOCAR · 12 ₪</small></summary>' +
           warn +
           '<div class="slika-group">' +
             '<div class="slika-group-title">פרטים לרכב הזה</div>' +
@@ -2736,7 +2794,7 @@
             (hasProfile ? '<button class="btn btn-secondary btn-sm" id="slikaEditBtn">ערוך פרטים קבועים</button>' : '') +
           '</div>' +
           '<small class="slika-note">התשלום וההצהרה באתר הם אישיים ונעשים על ידך. אחרי שתקבל את הדוח — כדאי לצרף אותו למסמכי הרכב.</small>' +
-        '</div>';
+        '</details>';
 
       const prep = document.getElementById('slikaPrepBtn');
       if (prep) prep.addEventListener('click', async () => {
@@ -2787,121 +2845,19 @@
     // בתיבות ההצהרה, בפרטי האשראי ובשליחת הטופס - אלה נשארים אצל המשתמש.
     // הערה על הטופס שלהם: לשדה "שם משפחה" יש id כפול (carNum) כמו למספר הרכב,
     // ולכן הוא נבחר לפי name ולא לפי id.
+    // הכפתור הוא טוען בלבד: הוא מושך את קוד המילוי העדכני מהשרת ומריץ אותו.
+    // המשמעות - כל תיקון עתידי נכנס לתוקף מיד, בלי להתקין את הכפתור מחדש.
     function slikaFillSource(apiUrl) {
-      const fn = async function () {
-        try {
-          const res = await fetch('__API__');
-          if (!res.ok) { alert('לא ניתן לטעון את הפרטים מהמערכת'); return; }
-          const d = await res.json();
-
-          const allInputs = () => {
-            const list = Array.from(document.querySelectorAll('input'));
-            Array.from(document.querySelectorAll('iframe')).forEach(fr => {
-              try {
-                const idoc = fr.contentDocument;
-                if (idoc) list.push.apply(list, Array.from(idoc.querySelectorAll('input')));
-              } catch (e) { /* מקור אחר - אין גישה, וזה תקין */ }
-            });
-            return list;
-          };
-
-          const banner = (title, body, ok) => {
-            const old = document.getElementById('ncFillBanner');
-            if (old) old.remove();
-            const el = document.createElement('div');
-            el.id = 'ncFillBanner';
-            el.setAttribute('style',
-              'position:fixed;top:0;left:0;right:0;z-index:2147483647;' +
-              'background:' + (ok ? '#1e7a3c' : '#a33') + ';color:#fff;' +
-              'font:14px/1.6 Arial,sans-serif;padding:12px 16px;direction:rtl;text-align:right;' +
-              'box-shadow:0 2px 10px rgba(0,0,0,.3)');
-            el.innerHTML = '<b>' + title + '</b><br>' + body +
-              '<span style="float:left;cursor:pointer;font-size:20px;line-height:1">&times;</span>';
-            el.querySelector('span').onclick = () => el.remove();
-            document.body.appendChild(el);
-            setTimeout(() => { const b = document.getElementById('ncFillBanner'); if (b) b.remove(); }, 20000);
-          };
-
-          const put = (el, v) => {
-            if (!el || !v) return false;
-            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-            setter.call(el, v);
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-            return true;
-          };
-
-          const findField = (words) => allInputs().find(el => {
-            if (el.type === 'hidden' || el.disabled) return false;
-            const hay = ((el.placeholder || '') + ' ' + (el.name || '') + ' ' +
-                         (el.id || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
-            if (/card|cvv|כרטיס|תוקף/i.test(hay)) return false;   // לעולם לא שדות כרטיס
-            return words.every(w => hay.includes(w.toLowerCase()));
-          });
-
-          // ---- ענף א': טופס INFOCAR. מזוהה חד-משמעית לפי שדה מספר הרכב ----
-          const carNumEl = document.getElementById('carNum');
-          if (carNumEl) {
-            const done = [], missing = [];
-            const mark = (ok, name) => (ok ? done : missing).push(name);
-
-            mark(put(carNumEl, d.plate), 'מספר רכב');
-            mark(put(document.getElementById('tzOfOwner'), d.ownerId), 'ת.ז בעלים');
-
-            const fixDate = (v) => {
-              const digits = String(v || '').replace(/[^0-9]/g, '');
-              if (digits.length === 8) return digits.slice(0,2) + ' / ' + digits.slice(2,4) + ' / ' + digits.slice(4);
-              return v;
-            };
-            mark(put(document.getElementById('ownerDate'), fixDate(d.ownerDate)), 'תאריך בעלות');
-            mark(put(document.getElementById('ShemPrtiMorshe'), d.firstName), 'שם פרטי');
-            // שם המשפחה נבחר לפי name: אצלם ה-id שלו כפול ושווה ל-carNum
-            mark(put(document.querySelector('[name^="ShemMishpachaMorshe"]'), d.lastName), 'שם משפחה');
-            mark(put(document.getElementById('tzOfMorshe'), d.idNumber), 'ת.ז מורשה');
-            mark(put(document.getElementById('KtovetMorshe'), d.address), 'כתובת');
-
-            let decl = '';
-            if (d.authorized) {
-              const tick = (id) => { const el = document.getElementById(id); if (el && !el.checked) el.click(); };
-              tick('cbTerms'); tick('cbTakanon'); tick('cbAprrovedByMorshe');
-              decl = ' · ההצהרות סומנו לפי אישורך';
-            } else {
-              decl = ' · לא אישרת הרשאה במערכת, ההצהרות לא סומנו';
-            }
-
-            banner('טופס INFOCAR',
-              'מולאו: ' + (done.join(', ') || 'כלום') +
-              (missing.length ? ' · לא נמצאו: ' + missing.join(', ') : '') + decl,
-              done.length > 0);
-            return;
-          }
-
-          // ---- ענף ב': דף התשלום ----
-          const invoiceLast = findField(['שם', 'משפחה']);
-          if (invoiceLast) {
-            const done = [], missing = [];
-            (put(invoiceLast, d.lastName) ? done : missing).push('שם משפחה');
-            (put(findField(['שם', 'פרטי']), d.firstName) ? done : missing).push('שם פרטי');
-            (put(findField(['דואר']) || findField(['mail']), d.email) ? done : missing).push('מייל');
-            (put(findField(['טלפון']) || findField(['phone']), d.phone) ? done : missing).push('טלפון');
-            banner('פרטי חשבונית',
-              'מולאו: ' + (done.join(', ') || 'כלום') +
-              (missing.length ? ' · לא נמצאו: ' + missing.join(', ') : '') +
-              ' · פרטי הכרטיס נשארים לך.', done.length > 0);
-            return;
-          }
-
-          banner('הדף הזה לא מזוהה',
-            'נמצאו ' + allInputs().length + ' שדות. כתובת: ' + location.hostname +
-            ' · צלם ושלח.', false);
-          return;
-
-        } catch (e) { alert('שגיאה: ' + e.message); }
+      const base = location.origin;
+      const loader = function () {
+        window.__NC_SLIKA_API__ = '__API__';
+        var s = document.createElement('script');
+        s.src = '__BASE__/api/slika/fill.js?t=' + Date.now();
+        s.onerror = function () { alert('לא ניתן לטעון את קוד המילוי מהמערכת'); };
+        document.body.appendChild(s);
       };
-      // כרום מועך שורות חדשות כששומרים javascript: כסימנייה, והקוד נשבר.
-      // לכן: שורה אחת, ומקודד.
-      const body = fn.toString().replace('__API__', apiUrl);
-      return 'javascript:' + encodeURIComponent('(' + body + ')();');
+      const code = loader.toString().replace('__API__', apiUrl).replace('__BASE__', base);
+      return 'javascript:' + encodeURIComponent('(' + code + ')();');
     }
 
     async function showSlikaBookmarklet() {
@@ -3064,7 +3020,21 @@
       // שומרים את הרכב שנבדק, כדי שאפשר יהיה להשוות אותו מול רכב מהמלאי בטרייד אין
       tradeInCustomerCar = { data: data, plate: plateNumber, leviPrice: null };
 
+      // הרכב כבר אצלנו? מסמנים מיד בראש התוצאות, לא רק כשמנסים לשמור
+      const existing = findDuplicateVin(plateNumber);
+      const existingBanner = existing
+        ? '<div class="already-owned' + (existing.sold ? ' sold' : '') + '">' +
+            '<b>' + (existing.sold ? '📁 הרכב הזה נמכר וכבר בארכיון' : '✅ הרכב הזה כבר במלאי שלך') + '</b>' +
+            '<span>' + escapeHtml([existing.manufacturer, existing.model, existing.year].filter(Boolean).join(' ')) +
+            (existing.addedDate ? ' · נקלט ' + escapeHtml(existing.addedDate) : '') +
+            (!existing.sold && existing.price ? ' · ₪' + Number(existing.price).toLocaleString('he-IL') : '') +
+            '</span>' +
+            (existing.sold ? '' : '<button class="btn btn-secondary btn-sm" id="goToExistingCar">פתח בכרטיס</button>') +
+          '</div>'
+        : '';
+
       checkResults.innerHTML = `
+        ${existingBanner}
         <div class="check-results-grid">${gridHtml}</div>
         <div id="leviPriceSection"></div>
         <div id="marketPriceSection"></div>
@@ -3073,7 +3043,9 @@
         ${historyHtml}
         <div id="ourKmHistory"></div>
         <div class="button-group">
-          <button class="btn btn-primary btn-full" id="addCheckedCarBtn">➕ הוסף רכב זה למלאי</button>
+          ${existing && !existing.sold
+            ? '<button class="btn btn-full" id="addCheckedCarBtn" disabled style="opacity:.5;cursor:not-allowed">✓ כבר במלאי שלך</button>'
+            : '<button class="btn btn-primary btn-full" id="addCheckedCarBtn">➕ הוסף רכב זה למלאי</button>'}
         </div>
         <div class="button-group" style="margin-top: 10px;">
           <button class="btn btn-secondary btn-full" id="tradeInBtn">🔄 הלקוח מעוניין בטרייד אין</button>
@@ -3084,7 +3056,18 @@
 
       document.getElementById('tradeInBtn').addEventListener('click', openTradeIn);
 
+      const goBtn = document.getElementById('goToExistingCar');
+      if (goBtn) goBtn.addEventListener('click', () => {
+        switchToScreen('screen-inventory');
+        setTimeout(() => {
+          if (!expandedCarIds.has(existing.id)) toggleCarDetails(existing.id);
+          const el = document.getElementById('details-' + existing.id);
+          if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 300);
+      });
+
       document.getElementById('addCheckedCarBtn').addEventListener('click', () => {
+        if (existing && !existing.sold) return;   // הגנה נוספת, מעבר להשבתת הכפתור
         switchToScreen('screen-add');
         document.getElementById('vin').value = plateNumber;
         // שומרים את נתוני המשרד כדי שיישמרו יחד עם הרכב
@@ -4888,6 +4871,7 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
         })();
         if (govHands) metaParts.push(`יד ${govHands}`);
         else if (!isFieldEmpty(car.handNumber)) metaParts.push(`יד ${escapeHtml(car.handNumber)}`);
+        metaParts.push(carAgeLabel(car));
         if (!isFieldEmpty(car.currentKm)) {
           metaParts.push(`${parseInt(car.currentKm).toLocaleString('he-IL')} ק״מ`);
         } else if (!isFieldEmpty(car.kilometers)) {
@@ -4908,6 +4892,7 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
           </div>
           <div class="car-details" id="details-${car.id}" style="display: ${isOpen ? 'grid' : 'none'};">
             <div class="car-detail"><span class="car-detail-label">מספר רכב:</span> ${escapeHtml(car.vin)}</div>
+            <div class="car-detail"><span class="car-detail-label">במלאי מאז:</span> ${escapeHtml(car.addedDate || '-')} <span style="color:#a0aec0">(${carAgeLabel(car)})</span></div>
             <div class="car-detail"><span class="car-detail-label">ק"מ עדכני:</span> ${!isFieldEmpty(car.currentKm) ? parseInt(car.currentKm).toLocaleString('he-IL') + ' ק״מ' : 'לא הוזן'}</div>
             <div class="car-detail"><span class="car-detail-label">ק"מ בטסט האחרון:</span> ${!isFieldEmpty(car.kilometers) ? parseInt(car.kilometers).toLocaleString('he-IL') + ' ק״מ' : '-'}</div>
             <div class="car-detail"><span class="car-detail-label">מחיר:</span> ₪${parseInt(car.price).toLocaleString('he-IL')}</div>
@@ -4942,6 +4927,7 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
                 <button class="btn btn-secondary" onclick="enrichCar(${car.id})" id="enrichBtn-${car.id}">🔄 השלם נתונים</button>
                 <button class="btn btn-secondary" onclick="refreshGovData(${car.id})" id="govBtn-${car.id}">🏛️ עדכן ממשרד התחבורה</button>
                 <button class="btn btn-secondary" onclick="createCarPost(${car.id})">📝 צור פוסט</button>
+                <button class="btn btn-secondary" onclick="ownerSlika(${car.id})">🛡️ סליקה</button>
                 <button class="btn btn-secondary" onclick="openContract(${car.id})">📄 הסכם מכירה</button>
                 ${currentUser.canViewArchive ? `<button class="btn btn-success" onclick="markAsSold(${car.id})">✅ נמכר</button>` : ''}
                 ${currentUser.canDelete ? `<button class="btn btn-danger" onclick="deleteCar(${car.id})">🗑️ מחק</button>` : ''}
@@ -4962,6 +4948,37 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
       const editId = e.target.getAttribute('data-edit-pending');
       if (editId) editCar(Number(editId));
     });
+
+    // סליקה לרכב שכבר במלאי, דרך מסלול בעל הרכב: דורש רק מספר רכב.
+    // ההצהרה כאן שונה מזו של המורשה - היא על כך שאתה רשום כבעל הרכב.
+    async function ownerSlika(id) {
+      const car = cars.find(c => c.id === id);
+      if (!car) return;
+      const desc = [car.manufacturer, car.model, car.year].filter(Boolean).join(' ');
+
+      const ok = confirm(
+        'סליקה עבור ' + desc + ' (' + car.vin + ')\n\n' +
+        'מסלול זה מיועד לרכב שאתה רשום כבעליו ברישיון.\n' +
+        'בלחיצה על אישור אתה מצהיר ש:\n' +
+        '· אתה רשום כבעל הרכב או כאחד מבעליו\n' +
+        '· אתה אדם פרטי ואינך תאגיד\n' +
+        '· קראת את תקנון האתר\n\n' +
+        'העלות 12 ₪, והתשלום נעשה על ידך באתר.'
+      );
+      if (!ok) return;
+
+      const prime = confirm('האם אתה הבעלים הראשי ברישיון הרכב?\n\nאישור = כן · ביטול = לא');
+
+      try {
+        const r = await fetch('/api/slika/prepare', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plate: car.vin, mode: 'owner', authorized: true, primeOwner: prime ? 1 : 0 })
+        });
+        if (!r.ok) throw new Error('שמירה נכשלה');
+        window.open('https://tviot.slika-ins.co.il/start/1', '_blank', 'noopener');
+        showMessage('success', '✓ מוכן — לחץ על כפתור המילוי באתר');
+      } catch (e) { showMessage('error', 'לא ניתן להכין: ' + e.message); }
+    }
 
     // סימון רכב כ"הגיע" - עובר למלאי הפעיל ומתחיל להיספר בשווי
     async function markCarArrived(id) {
@@ -5743,23 +5760,7 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
 
     // הרשאות המשתמש המחובר. ברירת מחדל מגבילה - אם השרת לא זמין, לא נחשוף פעולות רגישות בטעות.
     // ההסתרה כאן היא נוחות בלבד; האכיפה האמיתית מתבצעת בשרת
-    let currentUser = { user: '', role: 'limited', canDelete: false, canViewArchive: false, canViewInventoryValue: false, canManageInfocarProfile: false };
-    let infocarScriptLoading = false;
-    function loadInfocarHelper() {
-      const panel = document.getElementById('infocarHelper');
-      if (!panel) return;
-      panel.hidden = !currentUser.canManageInfocarProfile;
-      if (!currentUser.canManageInfocarProfile) { panel.replaceChildren(); return; }
-      if (window.NewCarInfocar) { window.NewCarInfocar.init(panel, document.getElementById('checkVin')); return; }
-      if (infocarScriptLoading) return;
-      infocarScriptLoading = true;
-      const script = document.createElement('script');
-      script.src = '/infocar-helper.js';
-      script.onload = () => { infocarScriptLoading = false; if (currentUser.canManageInfocarProfile) window.NewCarInfocar.init(panel, document.getElementById('checkVin')); };
-      script.onerror = () => { infocarScriptLoading = false; panel.textContent = 'עוזר הסליקה לא נטען. אפשר לרענן ולנסות שוב.'; };
-      document.head.appendChild(script);
-    }
-
+    let currentUser = { user: '', role: 'limited', canDelete: false, canViewArchive: false, canViewInventoryValue: false };
     async function loadPermissions() {
       try {
         const response = await fetch(`${API_URL}/me`);
@@ -5771,7 +5772,6 @@ ${mode !== 'contract' ? `<!-- ===== עמוד 2: טופס גילוי נאות ===
     }
 
     function applyPermissions() {
-      loadInfocarHelper();
       const archiveNavBtn = document.querySelector('.main-nav-btn[data-screen="screen-archive"]');
       if (archiveNavBtn) archiveNavBtn.style.display = currentUser.canViewArchive ? '' : 'none';
       const historyNav = document.getElementById('vehicleHistoryNav');

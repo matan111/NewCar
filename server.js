@@ -137,6 +137,15 @@ app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.ht
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.get('/manifest.json', (req, res) => res.sendFile(path.join(__dirname, 'manifest.json')));
 
+// קוד המילוי עצמו, מוגש כקובץ JS. הבוקמרקלט רק טוען אותו,
+// ולכן תיקונים נכנסים לתוקף מיד בלי התקנה מחדש.
+app.get('/api/slika/fill.js', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.type('application/javascript; charset=utf-8');
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'slika-fill.js'));
+});
+
 // נקרא מדף INFOCAR ולכן חייב להיות מחוץ לשער האימות: אין שם עוגייה של המערכת.
 // ההגנה היא טוקן אישי אקראי (24 בייטים) שמזהה את המשתמש ומחזיר רק את הנתונים שלו.
 app.options('/api/slika/pending', (req, res) => {
@@ -159,6 +168,8 @@ app.get('/api/slika/pending', (req, res) => {
         ownerId: pend ? pend.ownerId : '',
         ownerDate: pend ? pend.ownerDate : '',
         authorized: pend && pend.authorized ? 1 : 0,
+        mode: pend ? (pend.mode || 'morshe') : 'morshe',
+        primeOwner: pend && pend.primeOwner === 0 ? 0 : 1,
         firstName: prof.firstName || '', lastName: prof.lastName || '',
         idNumber: prof.idNumber || '', address: prof.address || '',
         phone: prof.phone || '', email: prof.email || ''
@@ -234,7 +245,6 @@ app.get('/api/me', (req, res) => {
     role,
     canDelete: role === 'admin',
     canViewArchive: role === 'admin',
-    canManageInfocarProfile: !!req.auth && req.auth.user === process.env.SITE_USERNAME,
     // סיכום שווי המלאי הכולל הוא מידע עסקי של הבעלים - לא מוצג לעובד
     canViewInventoryValue: role === 'admin'
   });
@@ -255,11 +265,6 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 // Archive transactions use a separate connection and database from inventory sync.
 const vehicleArchive = require('./vehicle-archive').mountVehicleArchive(app, {
   sqlite3, dbPath: DB_PATH, inventoryDb: db, requireAdmin, multer
-});
-
-// Private invoice defaults belong only to the primary owner, not demo/admin accounts.
-require('./infocar-helper').mountInfocarHelper(app, {
-  db, ownerUsername: process.env.SITE_USERNAME, directory: __dirname
 });
 
 // Create tables
@@ -1324,6 +1329,12 @@ app.post('/api/slika/queries', (req, res) => {
 db.run('ALTER TABLE slika_profile ADD COLUMN email TEXT', (err) => {
   if (err && !String(err.message).includes('duplicate column')) console.error('email:', err.message);
 });
+db.run('ALTER TABLE slika_pending ADD COLUMN primeOwner INTEGER DEFAULT 1', (err) => {
+  if (err && !String(err.message).includes('duplicate column')) console.error('primeOwner:', err.message);
+});
+db.run('ALTER TABLE slika_pending ADD COLUMN mode TEXT', (err) => {
+  if (err && !String(err.message).includes('duplicate column')) console.error('mode:', err.message);
+});
 db.run('ALTER TABLE slika_pending ADD COLUMN authorized INTEGER DEFAULT 0', (err) => {
   if (err && !String(err.message).includes('duplicate column')) console.error('authorized:', err.message);
 });
@@ -1366,13 +1377,15 @@ app.post('/api/slika/prepare', (req, res) => {
   if (!b.plate) { res.status(400).json({ error: 'חסר מספר רכב' }); return; }
   const authorized = b.authorized ? 1 : 0;
   const now = new Date().toISOString();
-  db.run(`INSERT INTO slika_pending (username, plate, ownerId, ownerDate, authorized, authorizedAt, preparedAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+  db.run(`INSERT INTO slika_pending (username, plate, ownerId, ownerDate, authorized, authorizedAt, mode, primeOwner, preparedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(username) DO UPDATE SET plate=excluded.plate, ownerId=excluded.ownerId,
             ownerDate=excluded.ownerDate, authorized=excluded.authorized,
-            authorizedAt=excluded.authorizedAt, preparedAt=excluded.preparedAt`,
+            authorizedAt=excluded.authorizedAt, mode=excluded.mode,
+            primeOwner=excluded.primeOwner, preparedAt=excluded.preparedAt`,
     [user, String(b.plate), String(b.ownerId || ''), String(b.ownerDate || ''),
-     authorized, authorized ? now : null, now],
+     authorized, authorized ? now : null, String(b.mode || 'morshe'),
+     b.primeOwner === 0 ? 0 : 1, now],
     (err) => {
       if (err) { res.status(500).json({ error: err.message }); return; }
       res.json({ success: true });
