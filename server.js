@@ -194,6 +194,113 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// ==================== מלאי ציבורי לאתר ====================
+// מוגש לאתר השיווקי. מחוץ לשער האימות, ולכן רשימה לבנה בלבד:
+// רק השדות שמופיעים כאן יוצאים החוצה. מחירון לוי יצחק, הערות פנימיות,
+// מסמכים, ותק במלאי ופרטי לקוחות לא נחשפים בשום מקרה.
+function toPublicCar(car) {
+  let usage = '', hands = null;
+  if (car.govData) {
+    try {
+      const g = JSON.parse(car.govData);
+      usage = g.condition || '';
+      const seen = new Set();
+      let count = 0;
+      (g.ownershipHistory || []).forEach(r => {
+        if (!r.baalut || r.baalut.includes('סוחר')) return;
+        const key = String(r.baalut_dt) + '|' + r.baalut;
+        if (seen.has(key)) return;
+        seen.add(key);
+        count++;
+      });
+      if (count) hands = count;
+    } catch (e) { /* נתונים פגומים - פשוט לא מציגים */ }
+  }
+  if (hands === null && car.handNumber) hands = Number(car.handNumber) || null;
+
+  return {
+    id: car.id,
+    plate: car.vin,
+    manufacturer: car.manufacturer || '',
+    model: car.model || '',
+    year: car.year || null,
+    color: car.color || '',
+    kilometers: Number(car.currentKm) || Number(car.kilometers) || null,
+    kmSource: Number(car.currentKm) > 0 ? 'measured' : 'test',
+    transmission: car.transmission === 'manual' ? 'manual' : 'automatic',
+    engine: car.engine || '',
+    trimLevel: car.trimLevel || '',
+    hands: hands,
+    usage: usage || (car.condition || ''),
+    price: Number(car.price) || null,
+    testValidUntil: car.testValidUntil || ''
+  };
+}
+
+app.options('/api/public/cars', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.sendStatus(204);
+});
+
+// רק רכבים זמינים באמת: לא נמכרו וכבר הגיעו למגרש.
+app.get('/api/public/cars', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Cache-Control', 'public, max-age=120');
+  db.all('SELECT * FROM cars WHERE (sold IS NULL OR sold = 0) AND (arrived IS NULL OR arrived = 1) ORDER BY id DESC',
+    (err, rows) => {
+      if (err) { res.status(500).json({ error: 'שגיאה בטעינת המלאי' }); return; }
+      const cars = (rows || []).map(toPublicCar);
+      if (!cars.length) { res.json({ count: 0, cars: [] }); return; }
+      // מצרפים תמונות בשאילתה אחת במקום אחת לכל רכב
+      db.all('SELECT id, carId, source FROM car_photos ORDER BY sortOrder, id', (e2, pics) => {
+        const byCar = new Map();
+        (pics || []).forEach(p => {
+          if (!byCar.has(p.carId)) byCar.set(p.carId, []);
+          const illus = String(p.source || '').startsWith('illustrative');
+          byCar.get(p.carId).push({
+            url: '/api/photos/' + p.id,
+            illustrative: illus,
+            credit: illus ? String(p.source).replace(/^illustrative:?/, '') : ''
+          });
+        });
+        cars.forEach(c => {
+          const list = byCar.get(c.id) || [];
+          c.images = list.map(x => x.url);              // תאימות לאחור
+          c.photos = list;                               // עם סימון המחשה וקרדיט
+          c.hasRealPhoto = list.some(x => !x.illustrative);
+        });
+        res.json({ count: cars.length, cars });
+      });
+    });
+});
+
+app.options('/api/public/cars/:plate', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.sendStatus(204);
+});
+
+app.get('/api/public/cars/:plate', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Cache-Control', 'public, max-age=120');
+  db.get('SELECT * FROM cars WHERE vin = ? AND (sold IS NULL OR sold = 0) AND (arrived IS NULL OR arrived = 1)',
+    [String(req.params.plate).trim()], (err, row) => {
+      if (err) { res.status(500).json({ error: 'שגיאה' }); return; }
+      if (!row) { res.status(404).json({ error: 'הרכב אינו במלאי' }); return; }
+      res.json(toPublicCar(row));
+    });
+});
+
+// התמונה עצמה. ציבורית בכוונה - האתר השיווקי צריך להציג אותה ללקוחות.
+app.get('/api/photos/:photoId', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  db.get('SELECT storedName, mimeType FROM car_photos WHERE id = ?', [Number(req.params.photoId)], (err, row) => {
+    if (err || !row) { res.status(404).end(); return; }
+    res.set('Cache-Control', 'public, max-age=86400');
+    if (row.mimeType) res.type(row.mimeType);
+    res.sendFile(path.join(PHOTOS_DIR, path.basename(row.storedName)));
+  });
+});
+
 // שער האימות: קודם עוגייה, ואם אין - נופלים חזרה ל-HTTP Basic (כדי ש-API וסקריפטים ימשיכו לעבוד)
 const basicFallback = basicAuth({ users: AUTH_USERS, challenge: true, realm: 'NewCar' });
 
@@ -256,6 +363,8 @@ const DB_PATH = process.env.DB_PATH || './cars.db';
 
 // המסמכים נשמרים ליד ה-DB - כלומר על אותו דיסק קבוע בענן, כך שהם שורדים דיפלויים
 const DOCS_DIR = process.env.DOCS_DIR || path.join(path.dirname(path.resolve(DB_PATH)), 'documents');
+const PHOTOS_DIR = process.env.PHOTOS_DIR || path.join(path.dirname(path.resolve(DB_PATH)), 'photos');
+try { fsp.mkdirSync(PHOTOS_DIR, { recursive: true }); } catch (e) { console.error('שגיאה ביצירת תיקיית תמונות:', e.message); }
 try { fsp.mkdirSync(DOCS_DIR, { recursive: true }); } catch (e) { console.error('שגיאה ביצירת תיקיית מסמכים:', e.message); }
 const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) console.error(err.message);
@@ -436,6 +545,22 @@ db.serialize(() => {
     )
   `);
   db.run('CREATE INDEX IF NOT EXISTS idx_docs_car ON car_documents(carId)');
+
+  // תמונות שיווקיות של הרכב - נפרדות ממסמכים, כי אלה מיועדות לתצוגה
+  // ללקוח באתר ולא לשימוש פנימי.
+  db.run(`
+    CREATE TABLE IF NOT EXISTS car_photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      carId INTEGER NOT NULL,
+      storedName TEXT NOT NULL,
+      mimeType TEXT,
+      size INTEGER,
+      sortOrder INTEGER DEFAULT 0,
+      source TEXT,
+      uploadedAt TEXT NOT NULL
+    )
+  `);
+  db.run('CREATE INDEX IF NOT EXISTS idx_photos_car ON car_photos(carId)');
 
   // ק"מ עדכני - מוזן ידנית ע"י מי שמוסיף את הרכב. שונה מ-kilometers שהוא הק"מ
   // שנרשם בטסט האחרון (יכול להיות בן שנה) ומגיע אוטומטית ממשרד התחבורה.
@@ -1584,6 +1709,232 @@ app.delete('/api/search-history', requireAdmin, (req, res) => {
   db.run('DELETE FROM search_history', (err) => {
     if (err) { res.status(500).json({ error: err.message }); return; }
     res.json({ success: true });
+  });
+});
+
+// ==================== תמונת המחשה ====================
+const https = require('https');
+
+// כותרות שמעידות שהתמונה אינה מייצגת רכב רגיל שהלקוח יקבל
+const ILLUS_REJECT = new RegExp([
+  'interior', 'innenraum', 'dashboard', 'engine', 'rally', 'racing', 'race', 'stcc', 'wtcc',
+  'cup', 'police', 'polizei', 'taxi', 'erlk', 'prototype', 'camou', 'spy', 'crash', 'wreck',
+  'accident', 'cutaway', 'chassis', 'detail', 'badge', 'logo', 'wheel', 'concept',
+  'tuning', 'modified', 'military', 'ambulance', 'fire', 'museum',
+  'classica', 'classic', 'oldtimer', 'vintage', 'retro', 'historic', 'veteran',
+  'salon', 'show', 'messe', 'expo', 'auction'
+].join('|'), 'i');
+
+function httpsJson(url) {
+  return new Promise((resolve) => {
+    https.get(url, { headers: { 'User-Agent': 'NewCarInventory/1.0 (dealer inventory)' } }, (r) => {
+      let d = '';
+      r.on('data', (c) => (d += c));
+      r.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { resolve(null); } });
+    }).on('error', () => resolve(null));
+  });
+}
+
+function httpsBuffer(url) {
+  return new Promise((resolve) => {
+    https.get(url, { headers: { 'User-Agent': 'NewCarInventory/1.0' } }, (r) => {
+      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
+        return httpsBuffer(r.headers.location).then(resolve);
+      }
+      if (r.statusCode !== 200) { resolve(null); return; }
+      const chunks = [];
+      r.on('data', (c) => chunks.push(c));
+      r.on('end', () => resolve({ buffer: Buffer.concat(chunks), type: r.headers['content-type'] }));
+    }).on('error', () => resolve(null));
+  });
+}
+
+// שמות היצרנים אצלנו בעברית; ויקימדיה מחפשת באנגלית
+const BRAND_EN = {
+  'קיה': 'Kia', 'יונדאי': 'Hyundai', 'סוזוקי': 'Suzuki', 'מזדה': 'Mazda', 'מאזדה': 'Mazda',
+  'סקודה': 'Skoda', 'פולקסווגן': 'Volkswagen', 'ניסאן': 'Nissan', 'טויוטה': 'Toyota',
+  'מיצובישי': 'Mitsubishi', 'סובארו': 'Subaru', 'אאודי': 'Audi', 'אופל': 'Opel',
+  'ב מ וו': 'BMW', 'ב.מ.וו': 'BMW', 'פיאט': 'Fiat', 'סיאט': 'Seat', 'מיני': 'Mini',
+  'שברולט': 'Chevrolet', 'פורד': 'Ford', 'רנו': 'Renault', 'פיג\'ו': 'Peugeot',
+  'סיטרואן': 'Citroen', 'הונדה': 'Honda', 'וולוו': 'Volvo', 'מרצדס': 'Mercedes-Benz',
+};
+
+// מחזיר רשימת מועמדים מסוננים, כדי שאפשר יהיה לבקש "הצעה אחרת"
+async function findIllustrativeImages(manufacturer, model, year) {
+  const brand = BRAND_EN[String(manufacturer || '').trim()] || String(manufacturer || '').trim();
+  const modelClean = String(model || '').replace(/[^\w\s-]/g, ' ').trim();
+  if (!brand || !modelClean) return [];
+
+  const url = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search' +
+    '&gsrsearch=' + encodeURIComponent(brand + ' ' + modelClean + ' ' + (year || '')) +
+    '&gsrnamespace=6&gsrlimit=25&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1200';
+
+  const j = await httpsJson(url);
+  const pages = j && j.query && j.query.pages ? Object.values(j.query.pages) : [];
+
+  const mapped = pages
+    .map((p) => {
+      const title = p.title.replace('File:', '');
+      const ii = (p.imageinfo || [])[0];
+      if (!ii) return null;
+      const meta = ii.extmetadata || {};
+      const license = meta.LicenseShortName ? meta.LicenseShortName.value : '';
+      const artist = meta.Artist ? String(meta.Artist.value).replace(/<[^>]*>/g, '').trim() : '';
+      return { title, url: ii.thumburl || ii.url, license, artist, descUrl: ii.descriptionurl };
+    })
+    .filter(Boolean);
+
+  const flat = (t) => t.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // שמות הדגמים אצלנו כוללים סיומות גימור ולפעמים חוזרים על שם היצרן:
+  //   "MAZDA 3" עם יצרן Mazda → "mazdamazda3", שלא קיים בשום כותרת
+  //   "COROLLA HSD SDN"      → "toyotacorollahsdsdn"
+  // לכן לוקחים את ליבת הדגם: מסירים את שם היצרן אם חזר, ואז האסימון הראשון.
+  const modelCore = (() => {
+    let m = modelClean.trim();
+    if (m.toLowerCase().startsWith(brand.toLowerCase())) {
+      m = m.slice(brand.length).trim();
+    }
+    return (m.split(/\s+/)[0] || m);
+  })();
+  const modelFlat = flat(brand + modelCore);
+
+  // שלב א': פסילות חובה - סוג תמונה, רישיון, והתאמת דגם
+  const base = mapped.filter((c) => {
+    if (!c.url) return false;
+    if (ILLUS_REJECT.test(c.title)) return false;
+    if (!/^(CC BY|CC0|Public domain|CC BY-SA)/i.test(c.license)) return false;
+    if (modelFlat.length > 3 && !flat(c.title).includes(modelFlat)) return false;
+    return true;
+  });
+
+  // שלב ב': העדפת שנה קרובה, אך לא על חשבון אפס תוצאות
+  const yearOf = (t) => {
+    const m = t.match(/(19|20)\d{2}/);
+    return m ? Number(m[0]) : null;
+  };
+  if (!year) return base;
+
+  const close = base.filter((c) => {
+    const yr = yearOf(c.title);
+    return !yr || Math.abs(yr - Number(year)) <= 3;
+  });
+
+  if (close.length) return close;
+
+  // אין התאמה לשנה - מחזירים לפי קרבה, כדי שהמשתמש יראה קודם את הרלוונטי
+  return base.slice().sort((a, b) => {
+    const ya = yearOf(a.title), yb = yearOf(b.title);
+    const da = ya ? Math.abs(ya - Number(year)) : 99;
+    const db = yb ? Math.abs(yb - Number(year)) : 99;
+    return da - db;
+  });
+}
+
+// מחזיר את כל המועמדים בבת אחת - הממשק מחליף ביניהם מקומית,
+// כי סדר התוצאות של ויקימדיה אינו יציב בין קריאות.
+app.get('/api/cars/:id/illustrative', (req, res) => {
+  db.get('SELECT manufacturer, model, year FROM cars WHERE id = ?', [Number(req.params.id)], async (err, car) => {
+    if (err || !car) { res.status(404).json({ error: 'רכב לא נמצא' }); return; }
+    const found = await findIllustrativeImages(car.manufacturer, car.model, car.year);
+    res.json({ found: found.length > 0, total: found.length, images: found.slice(0, 12) });
+  });
+});
+
+// שומר את התמונה שנבחרה לרכב, מסומנת כהמחשה עם הקרדיט הנדרש
+app.post('/api/cars/:id/illustrative', (req, res) => {
+  const carId = Number(req.params.id);
+  const b = req.body || {};
+  if (!b.url) { res.status(400).json({ error: 'חסרה כתובת תמונה' }); return; }
+  httpsBuffer(b.url).then((img) => {
+    if (!img || !img.type || !img.type.startsWith('image/')) {
+      res.status(502).json({ error: 'לא ניתן להוריד את התמונה' }); return;
+    }
+    const credit = [b.license, b.artist].filter(Boolean).join(' · ');
+    savePhotoBuffer({ carId, buffer: img.buffer, mimeType: img.type.split(';')[0],
+                      source: 'illustrative:' + credit }, (e2, id) => {
+      if (e2) { res.status(500).json({ error: e2.message }); return; }
+      res.json({ success: true, photoId: id });
+    });
+  });
+});
+
+// ==================== תמונות רכב ====================
+const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024, files: 20 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_PHOTO_TYPES.has(file.mimetype)) { cb(new Error('רק תמונות: ' + file.mimetype)); return; }
+    cb(null, true);
+  },
+});
+
+function savePhotoBuffer({ carId, buffer, mimeType, source }, cb) {
+  const ext = mimeType === 'image/png' ? '.png' : mimeType === 'image/webp' ? '.webp' : '.jpg';
+  const storedName = 'car' + carId + '-' + Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
+  fsp.writeFile(path.join(PHOTOS_DIR, storedName), buffer, (err) => {
+    if (err) { cb(err); return; }
+    db.get('SELECT COALESCE(MAX(sortOrder), -1) AS mx FROM car_photos WHERE carId = ?', [carId], (e2, row) => {
+      const order = (row ? row.mx : -1) + 1;
+      db.run(
+        'INSERT INTO car_photos (carId, storedName, mimeType, size, sortOrder, source, uploadedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [carId, storedName, mimeType, buffer.length, order, source || 'upload', new Date().toISOString()],
+        function (e3) { cb(e3, e3 ? null : this.lastID); }
+      );
+    });
+  });
+}
+
+app.post('/api/cars/:id/photos', photoUpload.array('photos', 20), (req, res) => {
+  const carId = Number(req.params.id);
+  const files = req.files || [];
+  if (!files.length) { res.status(400).json({ error: 'לא נבחרו תמונות' }); return; }
+  let done = 0, failed = 0;
+  files.forEach(f => {
+    savePhotoBuffer({ carId, buffer: f.buffer, mimeType: f.mimetype, source: 'upload' }, (err) => {
+      if (err) failed++; else done++;
+      if (done + failed === files.length) res.json({ success: true, added: done, failed });
+    });
+  });
+});
+
+app.get('/api/cars/:id/photos', (req, res) => {
+  db.all('SELECT id, mimeType, size, sortOrder, source, uploadedAt FROM car_photos WHERE carId = ? ORDER BY sortOrder, id',
+    [Number(req.params.id)], (err, rows) => {
+      if (err) { res.status(500).json({ error: err.message }); return; }
+      res.json(rows || []);
+    });
+});
+
+
+app.put('/api/photos/:photoId/primary', (req, res) => {
+  const photoId = Number(req.params.photoId);
+  db.get('SELECT carId FROM car_photos WHERE id = ?', [photoId], (err, row) => {
+    if (err || !row) { res.status(404).json({ error: 'התמונה לא נמצאה' }); return; }
+    db.all('SELECT id FROM car_photos WHERE carId = ? ORDER BY sortOrder, id', [row.carId], (e2, all) => {
+      if (e2) { res.status(500).json({ error: e2.message }); return; }
+      const ordered = [photoId].concat((all || []).map(p => p.id).filter(id => id !== photoId));
+      let done = 0;
+      ordered.forEach((id, idx) => {
+        db.run('UPDATE car_photos SET sortOrder = ? WHERE id = ?', [idx, id], () => {
+          if (++done === ordered.length) res.json({ success: true, order: ordered });
+        });
+      });
+    });
+  });
+});
+
+app.delete('/api/photos/:photoId', (req, res) => {
+  const id = Number(req.params.photoId);
+  db.get('SELECT storedName FROM car_photos WHERE id = ?', [id], (err, row) => {
+    if (err || !row) { res.status(404).json({ error: 'לא נמצא' }); return; }
+    db.run('DELETE FROM car_photos WHERE id = ?', [id], (e2) => {
+      if (e2) { res.status(500).json({ error: e2.message }); return; }
+      fsp.unlink(path.join(PHOTOS_DIR, path.basename(row.storedName)), () => {});
+      res.json({ success: true });
+    });
   });
 });
 
